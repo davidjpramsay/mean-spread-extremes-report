@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mean, Spread, and the Extremes</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='white'/%3E%3Cpath d='M12 42 C23 16 41 16 52 42' fill='none' stroke='%230d0f14' stroke-width='5'/%3E%3C/svg%3E" />
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']]
+      },
+      options: { enableMenu: false }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --ink: #0d0f14;
+      --muted: #5b6470;
+      --faint: #8a93a0;
+      --line: #d9dee5;
+      --line-soft: #edf0f4;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --men: #006adc;
+      --women: #d92940;
+      --amber: #b77900;
+      --cyan-soft: rgba(0, 106, 220, 0.1);
+      --red-soft: rgba(217, 41, 64, 0.1);
+      --mono: "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    button, input { font: inherit; }
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .rail {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,0.96);
+      overflow: auto;
+    }
+    .mark {
+      width: 38px;
+      height: 38px;
+      margin-bottom: 22px;
+      border: 2px solid var(--ink);
+      display: grid;
+      place-items: center;
+    }
+    .mark svg { width: 26px; height: 18px; }
+    .rail h2 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      line-height: 1.2;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .rail p {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .rail nav { display: grid; gap: 2px; }
+    .rail nav a {
+      display: block;
+      padding: 8px 0;
+      color: #3c4552;
+      font-size: 12px;
+      text-decoration: none;
+      border-top: 1px solid var(--line-soft);
+    }
+    main { min-width: 0; }
+    section {
+      border-bottom: 1px solid var(--line);
+      padding: clamp(44px, 7vw, 92px) clamp(22px, 5vw, 72px);
+    }
+    .inner { max-width: 1180px; margin: 0 auto; }
+    .hero {
+      min-height: 92vh;
+      display: grid;
+      align-items: center;
+      padding-top: 34px;
+      padding-bottom: 34px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(420px, 1.05fr);
+      gap: clamp(28px, 5vw, 74px);
+      align-items: center;
+    }
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-family: var(--serif);
+      font-size: clamp(45px, 7vw, 96px);
+      font-weight: 500;
+      line-height: 0.93;
+      letter-spacing: 0;
+    }
+    .deck {
+      margin: 26px 0 0;
+      max-width: 670px;
+      color: #303846;
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.4;
+    }
+    .thesis {
+      margin-top: 34px;
+      padding-left: 18px;
+      border-left: 3px solid var(--ink);
+      max-width: 650px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .hero-panel {
+      border-left: 1px solid var(--line);
+      padding-left: clamp(20px, 3vw, 42px);
+      min-width: 0;
+    }
+    .panel-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 14px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .panel-title h2, .section-title h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+    .panel-title span {
+      color: var(--muted);
+      font: 700 11px/1 var(--mono);
+      text-transform: uppercase;
+    }
+    .hero-chart { width: 100%; min-height: 300px; display: block; }
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-top: 16px;
+    }
+    .metric-strip div {
+      padding: 12px 10px;
+      border-right: 1px solid var(--line);
+    }
+    .metric-strip div:last-child { border-right: 0; }
+    .metric-strip span {
+      display: block;
+      color: var(--muted);
+      font: 700 10px/1.1 var(--mono);
+      text-transform: uppercase;
+    }
+    .metric-strip strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 19px;
+      line-height: 1;
+    }
+    .section-title {
+      display: grid;
+      grid-template-columns: minmax(0, 0.72fr) minmax(260px, 0.28fr);
+      gap: 34px;
+      align-items: end;
+      margin-bottom: 30px;
+    }
+    .section-title h2 {
+      font-family: var(--serif);
+      font-size: clamp(30px, 4vw, 52px);
+      font-weight: 500;
+    }
+    .section-title p, .body-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    .body-copy {
+      display: grid;
+      grid-template-columns: minmax(0, 0.7fr) minmax(290px, 0.3fr);
+      gap: 44px;
+      align-items: start;
+    }
+    .body-copy h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+    .body-copy p + h3 { margin-top: 28px; }
+    .equation-box {
+      border-top: 2px solid var(--ink);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 0;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #1f2937;
+      overflow-x: auto;
+    }
+    .equation-box .eq-title {
+      margin: 0 0 6px;
+      font: 800 11px/1.2 var(--mono);
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .equation-box mjx-container[display="true"] {
+      margin: 0.65em 0;
+    }
+    .equation-box ol {
+      margin: 8px 0 0 18px;
+      padding: 0;
+      color: var(--muted);
+    }
+    .equation-box li {
+      margin: 4px 0;
+    }
+    .math-note-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 30px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .math-note {
+      min-width: 0;
+      padding: 18px 0;
+      border-right: 1px solid var(--line);
+    }
+    .math-note:last-child { border-right: 0; }
+    .math-note h4 {
+      margin: 0 0 9px;
+      font: 800 12px/1.2 var(--mono);
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .math-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .lab-grid {
+      display: grid;
+      grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+      gap: 44px;
+      align-items: start;
+    }
+    .controls {
+      border-top: 2px solid var(--ink);
+      display: grid;
+      gap: 22px;
+      padding-top: 18px;
+    }
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 8px;
+      font: 750 12px/1 var(--mono);
+      color: #1f2937;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--ink);
+    }
+    .lab-stage {
+      min-width: 0;
+      border-left: 1px solid var(--line);
+      padding-left: 34px;
+    }
+    .lab-chart, .case-chart, .mini-chart { width: 100%; display: block; }
+    .lab-readout {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+    }
+    .lab-readout div {
+      padding: 13px 10px;
+      border-right: 1px solid var(--line);
+      min-width: 0;
+    }
+    .lab-readout div:last-child { border-right: 0; }
+    .lab-readout span {
+      display: block;
+      color: var(--muted);
+      font: 700 10px/1.2 var(--mono);
+      text-transform: uppercase;
+    }
+    .lab-readout strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 20px;
+      overflow-wrap: anywhere;
+    }
+    .lab-readout small {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+    .z-ladder {
+      margin-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+    .z-ladder h3 {
+      margin: 14px 0 8px;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+    .z-ladder p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .z-ladder table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+    .z-ladder th,
+    .z-ladder td {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 9px 7px;
+      text-align: right;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+    .z-ladder th:first-child,
+    .z-ladder td:first-child { text-align: left; }
+    .z-ladder th {
+      color: var(--muted);
+      font: 750 9px/1.2 var(--mono);
+      text-transform: uppercase;
+    }
+    .composition-bar {
+      display: inline-block;
+      width: 58px;
+      height: 6px;
+      margin-left: 6px;
+      background: var(--line-soft);
+      vertical-align: middle;
+    }
+    .composition-bar i {
+      display: block;
+      height: 100%;
+      background: var(--women);
+    }
+    .atlas-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 0;
+    }
+    .atlas-explain {
+      margin: -14px 0 20px;
+      max-width: 900px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 12px;
+    }
+    .tab {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 0;
+      padding: 8px 11px;
+      color: #354052;
+      font: 750 12px/1 var(--mono);
+      cursor: pointer;
+    }
+    .tab[aria-pressed="true"] {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+    .atlas-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.52fr) minmax(430px, 0.48fr);
+      gap: 34px;
+      align-items: start;
+    }
+    .atlas-list { border-top: 1px solid var(--line); }
+    .atlas-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) 112px 64px;
+      gap: 14px;
+      align-items: center;
+      padding: 13px 0;
+      border: 0;
+      border-bottom: 1px solid var(--line-soft);
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      color: inherit;
+      overflow: hidden;
+    }
+    .atlas-row > .atlas-cell:nth-of-type(n+4) { display: none; }
+    .atlas-row:hover, .atlas-row.active { background: linear-gradient(90deg, rgba(0,106,220,0.055), transparent 70%); }
+    .atlas-name strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+    .atlas-name span, .atlas-cell span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font: 700 10px/1.1 var(--mono);
+      text-transform: uppercase;
+    }
+    .atlas-cell strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.1;
+    }
+    .case-panel {
+      position: sticky;
+      top: 18px;
+      border-left: 1px solid var(--line);
+      padding-left: 24px;
+    }
+    .case-panel h3 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.15;
+    }
+    .case-panel p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .case-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-top: 12px;
+    }
+    .case-metrics div {
+      min-width: 0;
+      padding: 10px 8px;
+      border-right: 1px solid var(--line);
+    }
+    .case-metrics div:last-child { border-right: 0; }
+    .case-metrics span {
+      display: block;
+      color: var(--muted);
+      font: 700 9px/1.2 var(--mono);
+      text-transform: uppercase;
+    }
+    .case-metrics strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 17px;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+    .cutoff-note {
+      margin-top: 12px;
+      padding: 10px 0 0;
+      border-top: 1px solid var(--line-soft);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .cutoff-note strong {
+      color: var(--ink);
+    }
+    .tail-interpretation {
+      margin-top: 12px;
+      padding: 12px 0 0;
+      border-top: 1px solid var(--line-soft);
+      color: #273244;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .tail-interpretation strong {
+      color: var(--ink);
+    }
+    .source-note {
+      margin-top: 14px;
+      padding: 12px 0 0;
+      border-top: 1px solid var(--line);
+      color: #4b5563;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .caveat {
+      margin-top: 14px;
+      border-left: 3px solid var(--amber);
+      padding: 9px 0 9px 12px;
+      color: #574119;
+      font-size: 12px;
+      line-height: 1.45;
+      background: linear-gradient(90deg, rgba(183,121,0,0.08), transparent);
+    }
+    .offender-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(330px, 1.1fr);
+      gap: 42px;
+      align-items: start;
+    }
+    .bar-table { border-top: 1px solid var(--line); }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) 76px;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 13px;
+    }
+    .bar-track {
+      height: 8px;
+      background: var(--line-soft);
+      position: relative;
+      overflow: hidden;
+    }
+    .bar-fill { height: 100%; background: var(--ink); }
+    .cross-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .cross-table th, .cross-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line-soft);
+      text-align: right;
+    }
+    .cross-table th:first-child, .cross-table td:first-child { text-align: left; }
+    .cross-table thead th {
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font: 700 10px/1.2 var(--mono);
+      text-transform: uppercase;
+    }
+    .sources {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 34px;
+      border-top: 1px solid var(--line);
+    }
+    .source-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .source-item a {
+      color: var(--ink);
+      font-weight: 780;
+    }
+    .source-item p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .fine-print {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .curve-line { transition: d 160ms ease, opacity 160ms ease; }
+      .bar-fill { transition: width 180ms ease; }
+    }
+    @media (max-width: 1060px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .rail nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+      }
+      .rail nav a {
+        border-top: 0;
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .hero-grid, .body-copy, .lab-grid, .atlas-grid, .offender-grid, .section-title {
+        grid-template-columns: 1fr;
+      }
+      .hero-panel, .lab-stage, .case-panel {
+        border-left: 0;
+        padding-left: 0;
+      }
+      .case-panel { position: static; }
+      .hero { min-height: auto; }
+    }
+    @media (max-width: 720px) {
+      section { padding-left: 16px; padding-right: 16px; }
+      h1 { font-size: 42px; line-height: 0.98; }
+      .deck { font-size: 17px; }
+      .metric-strip, .lab-readout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric-strip div:nth-child(2), .lab-readout div:nth-child(2) { border-right: 0; }
+      .case-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .case-metrics div:nth-child(2) { border-right: 0; }
+      .math-note-grid { grid-template-columns: 1fr; }
+      .math-note { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .math-note:last-child { border-bottom: 0; }
+      .z-ladder { overflow-x: auto; }
+      .z-ladder table { min-width: 650px; }
+      .atlas-row {
+        grid-template-columns: 1fr 74px 70px;
+        gap: 10px;
+      }
+      .atlas-row .atlas-cell:nth-of-type(3),
+      .atlas-row .atlas-cell:nth-of-type(4) { display: none; }
+      .bar-row { grid-template-columns: 1fr; gap: 7px; }
+      .sources { grid-template-columns: 1fr; }
+      .cross-table { font-size: 12px; }
+      .cross-table th, .cross-table td { padding: 8px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail" aria-label="Report navigation">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 60 36"><path d="M3 31 C14 5 45 5 57 31" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M8 31 C20 16 36 16 52 31" fill="none" stroke="#d92940" stroke-width="3" stroke-linecap="round"/></svg>
+      </div>
+      <h2>Mean / SD / tails</h2>
+      <p>A companion report for the men/women distribution gallery.</p>
+      <nav>
+        <a href="#thesis">Thesis</a>
+        <a href="#math">Mathematical core</a>
+        <a href="#lab">Tail-ratio lab</a>
+        <a href="#atlas">Evidence atlas</a>
+        <a href="#offender">Offender case study</a>
+        <a href="#limits">Methods and limits</a>
+        <a href="#sources">Sources</a>
+      </nav>
+    </aside>
+
+    <main>
+      <section class="hero" id="thesis">
+        <div class="inner hero-grid">
+          <div>
+            <h1>Mean, Spread, and the Extremes</h1>
+            <p class="deck">A small centre shift can become a large tail-ratio shift. The key move is to read group differences in standard-deviation units, not as percentages of the mean.</p>
+            <div class="thesis">
+              The central question is how two normally distributed populations can look similar near the centre yet differ sharply in the tails. Mean differences become mathematically interpretable when they are related to the standard deviations of the distributions.
+            </div>
+          </div>
+          <div class="hero-panel">
+            <div class="panel-title">
+              <h2>Right-tail amplification</h2>
+              <span>normal model</span>
+            </div>
+            <svg id="heroChart" class="hero-chart" viewBox="0 0 760 360" role="img" aria-label="Two normal curves with highlighted right tail"></svg>
+            <div class="metric-strip">
+              <div><span>d</span><strong>0.50</strong></div>
+              <div><span>cutoff z</span><strong>3.0</strong></div>
+              <div><span>overlap</span><strong>80%</strong></div>
+              <div><span>right tail</span><strong>4.6×</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="math">
+        <div class="inner">
+          <div class="section-title">
+            <h2>The mathematical core</h2>
+            <p>The centre matters, but the centre alone is not the story. What matters for extremes is where the cutoff sits in each distribution’s own standard-deviation units.</p>
+          </div>
+          <div class="body-copy">
+            <div>
+              <h3>1. Same spread, different mean</h3>
+              <p>If group B is shifted right by \(d_A\) standard deviations, then a cutoff at \(k\) for group A is only \((k-d_A)/r\) standard deviations from group B's mean. With equal SDs, \(d_A=0.5\) still leaves heavy overlap near the centre, but at \(k=3\) the upper-tail ratio is roughly \(4.6{:}1\).</p>
+              <h3>2. Same mean, different spread</h3>
+              <p>A group with larger SD can be overrepresented in both tails, even with no mean difference. Unequal variance can therefore change the extremes without changing the average.</p>
+              <h3>3. Mean and spread together</h3>
+              <p>When a mean shift and an SD shift point in the same tail direction, the tail ratio can grow quickly. When they point in opposite directions, one can offset the other.</p>
+            </div>
+            <div class="equation-box">
+              <div class="eq-title">Univariate normal comparison</div>
+              \[
+                A \sim \mathcal{N}(\mu_A,\sigma_A^2)
+              \]
+              \[
+                B \sim \mathcal{N}(\mu_B,\sigma_B^2)
+              \]
+              \[
+                d_A=\frac{\mu_B-\mu_A}{\sigma_A}
+              \]
+              \[
+                r=\frac{\sigma_B}{\sigma_A}
+              \]
+              <div class="eq-title">Upper tail</div>
+              \[
+                c_+=\mu_A+k\sigma_A
+              \]
+              \[
+                p_{A,+}=1-\Phi(k)
+              \]
+              \[
+                p_{B,+}=1-\Phi\!\left(\frac{k-d_A}{r}\right)
+              \]
+              \[
+                R_+=\frac{p_{B,+}}{p_{A,+}}
+              \]
+              <div class="eq-title">Lower tail</div>
+              \[
+                c_-=\mu_A-k\sigma_A
+              \]
+              \[
+                p_{A,-}=\Phi(-k)
+              \]
+              \[
+                p_{B,-}=\Phi\!\left(\frac{-k-d_A}{r}\right)
+              \]
+              \[
+                R_-=\frac{p_{B,-}}{p_{A,-}}
+              \]
+              <div class="eq-title">Tail-ratio function</div>
+              \[
+                R_+(k;d_A,r)=
+                \frac{1-\Phi\!\left((k-d_A)/r\right)}{1-\Phi(k)}
+              \]
+            </div>
+          </div>
+          <div class="math-note-grid">
+            <div class="math-note">
+              <h4>Mean shift</h4>
+              <p>With equal SDs, a positive mean shift reduces the effective upper-tail cutoff from \(k\) to \(k-d_A\). The farther into the tail you go, the more that small subtraction matters.</p>
+            </div>
+            <div class="math-note">
+              <h4>SD ratio</h4>
+              <p>If \(r&gt;1\), group B has thicker modeled tails relative to group A. That can increase both upper and lower extremes even when \(d_A=0\).</p>
+            </div>
+            <div class="math-note">
+              <h4>Composition</h4>
+              <p>With base rates \(\pi_A\) and \(\pi_B\), B's share above a cutoff is \(\pi_Bp_{B,+}/(\pi_Ap_{A,+}+\pi_Bp_{B,+})\). Equal base rates reduce this to \(p_{B,+}/(p_{A,+}+p_{B,+})\).</p>
+            </div>
+            <div class="math-note">
+              <h4>Extreme growth</h4>
+              <p>For equal SDs and large \(k\), Mills' approximation gives \(R_+\approx\frac{k}{k-d_A}\exp(kd_A-d_A^2/2)\). The product \(kd_A\) is why the same mean shift has a larger effect farther into the tail.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="lab">
+        <div class="inner">
+          <div class="section-title">
+            <h2>The tail-ratio lab</h2>
+            <p>Change the mean shift, SD ratio, and cutoff. The chart uses group A as the baseline. Group B moves by \(d_A\) and changes spread by the selected \(\sigma\) ratio.</p>
+          </div>
+          <div class="lab-grid">
+            <div class="controls">
+              <div class="control">
+                <label for="dSlider"><span>d</span><strong id="dValue">0.50</strong></label>
+                <input id="dSlider" type="range" min="-1" max="1.5" step="0.01" value="0.5" />
+              </div>
+              <div class="control">
+                <label for="sigmaSlider"><span>σ ratio</span><strong id="sigmaValue">1.00</strong></label>
+                <input id="sigmaSlider" type="range" min="0.55" max="1.8" step="0.01" value="1" />
+              </div>
+              <div class="control">
+                <label for="zSlider"><span>cutoff z</span><strong id="zValue">3.00</strong></label>
+                <input id="zSlider" type="range" min="1" max="4.5" step="0.01" value="3" />
+              </div>
+              <p class="fine-print">The lab is mathematical, not causal. Here \(d_A\) is measured against group A's SD. In the evidence atlas, \(d_{M-W}\) is shown as a pooled-SD summary.</p>
+            </div>
+            <div class="lab-stage">
+              <svg id="labChart" class="lab-chart" viewBox="0 0 840 430" role="img" aria-label="Interactive normal tail ratio chart"></svg>
+              <div class="lab-readout">
+                <div><span>Right tail B/A</span><strong id="rightRatio">4.60×</strong><small>B's upper-tail probability divided by A's.</small></div>
+                <div><span>Left tail B/A</span><strong id="leftRatio">0.30×</strong><small>B's lower-tail probability divided by A's.</small></div>
+                <div><span>B above / 10k</span><strong id="count10k">62</strong><small>Expected B cases above the upper cutoff per 10,000.</small></div>
+                <div><span>B above / 1m</span><strong id="count1m">6.2k</strong><small>Same upper-tail estimate per one million.</small></div>
+              </div>
+              <div class="z-ladder">
+                <h3>Standard-extreme ladder</h3>
+                <p>Each row holds the cutoff at \(\mu_A+k\sigma_A\) and asks what happens to group B under the selected mean shift and SD ratio.</p>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>k</th>
+                      <th>A upper p</th>
+                      <th>B upper p</th>
+                      <th>upper B/A</th>
+                      <th>lower B/A</th>
+                      <th>B share upper</th>
+                    </tr>
+                  </thead>
+                  <tbody id="zLadderRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="atlas">
+        <div class="inner">
+          <div class="section-title">
+            <h2>Evidence atlas</h2>
+            <p>Selected rows from the 101-card gallery, trimmed to a broad set of distinct examples with clear sources. Treat each normal curve as a compact lens: raw samples, top-tail competition data, population indicators, and scale scores are not the same kind of evidence.</p>
+          </div>
+          <p class="atlas-explain"><strong>Atlas z=2 cutoff:</strong> this is a shared comparison threshold, not two SDs above either sex's own mean. The upper line is \(c_+=(\mu_M+\mu_W)/2+2\sigma_{\mathrm{pooled}}\); the lower line is \(c_-=(\mu_M+\mu_W)/2-2\sigma_{\mathrm{pooled}}\). The tail ratio compares the two modelled probabilities beyond the same line.</p>
+          <div class="atlas-toolbar" id="atlasTabs"></div>
+          <div class="atlas-grid">
+            <div class="atlas-list" id="atlasList"></div>
+            <aside class="case-panel" id="casePanel" aria-live="polite"></aside>
+          </div>
+        </div>
+      </section>
+
+      <section id="offender">
+        <div class="inner">
+          <div class="section-title">
+            <h2>Crime data: victims and offenders are different questions</h2>
+            <p>The victimization cards compare men and women as victims. BJS also reports perceived offender sex for violent incidents. That is a separate table, a separate denominator, and not a normal-distribution measure.</p>
+          </div>
+          <div class="offender-grid">
+            <div>
+              <div class="panel-title">
+                <h2>Perceived offender sex</h2>
+                <span>violent incidents, 2024</span>
+              </div>
+              <div id="offenderBars" class="bar-table"></div>
+              <div class="caveat" id="offenderCaveat"></div>
+            </div>
+            <div>
+              <div class="panel-title">
+                <h2>Victim × offender table</h2>
+                <span>BJS table 12</span>
+              </div>
+              <div id="crossTable"></div>
+              <p class="fine-print">No clean CDC/NISVS perpetrator-sex split was found in the IPV data brief used for the domestic/IPV victimization card, so this report does not invent one.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="limits">
+        <div class="inner">
+          <div class="section-title">
+            <h2>Methods and limits</h2>
+            <p>The main intellectual risk is to overread clean curves. The curves clarify a mathematical relationship; they do not turn every dataset into a true Gaussian population.</p>
+          </div>
+          <div class="body-copy">
+            <div>
+              <h3>Normal approximation</h3>
+              <p>For continuous measurements, a normal curve can be a useful compact summary. For ordinal scales, binary variables, top-tail sport samples, and skewed behavior counts, it is a visualization model rather than a distributional claim.</p>
+              <h3>Tail ratios are threshold-dependent</h3>
+              <p>Tail ratios can look modest near the centre and very large at extreme cutoffs. Reporting the cutoff is part of the claim.</p>
+              <h3>Tail composition is not individual prediction</h3>
+              <p>Large overlap means many individuals sit against the group-level pattern. Tail ratios describe aggregate composition above or below a threshold, not a verdict about a person.</p>
+            </div>
+            <div class="equation-box">
+              <div class="eq-title">Reporting checklist</div>
+              \[
+                \{\mu_A,\sigma_A,\mu_B,\sigma_B,d,r,c,k,p_{A,\pm},p_{B,\pm},R_\pm\}
+              \]
+              <ol>
+                <li>\(\mu\) and \(\sigma\) by group</li>
+                <li>standardized difference \(d\)</li>
+                <li>SD ratio \(r\)</li>
+                <li>threshold \(c\) or \(k\)</li>
+                <li>tail probabilities and tail ratios</li>
+                <li>source definition and caveat</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="sources">
+        <div class="inner">
+          <div class="section-title">
+            <h2>Sources</h2>
+            <p>Every applied row inherits the gallery source. These are the report-level sources and methodological anchors.</p>
+          </div>
+          <div class="sources" id="sourcesList"></div>
+          <p class="fine-print" style="margin-top:24px">Generated from the local gallery data on <span id="generatedAt"></span>. Existing gallery file was not modified.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script id="report-data" type="application/json">{"generated_at": "2026-06-18T14:38:08+08:00", "gallery_count": 101, "atlas_count": 33, "groups": ["Body", "Performance", "Preferences", "Personality", "Social scales", "Social/behavior"], "sources": [{"name": "NIST e-Handbook: Normal Distribution", "url": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda3661.htm", "use": "Normal density, cumulative distribution, survival-function framing."}, {"name": "Hill & Fox (2022), Extreme Tail Ratios", "url": "https://www.mdpi.com/2571-905X/5/4/57", "use": "Tail-ratio language and right-tail dominance for normal distributions."}, {"name": "Hyde (2005), The Gender Similarities Hypothesis", "url": "https://pubmed.ncbi.nlm.nih.gov/16173891/", "use": "Context: large overlaps can coexist with real group-level effects."}, {"name": "Del Giudice (2009), On the Real Magnitude of Psychological Sex Differences", "url": "https://journals.sagepub.com/doi/10.1177/147470490900700209", "use": "Caution that univariate summaries do not exhaust multivariate differences."}, {"name": "BJS Criminal Victimization, 2024", "url": "https://bjs.ojp.gov/library/publications/criminal-victimization-2024", "use": "Victimization and perceived offender-sex incident tables."}, {"name": "CDC NISVS 2023/2024 IPV Data Brief", "url": "https://www.cdc.gov/nisvs/media/pdfs/intimatepartnerviolence-brief.pdf", "use": "Intimate-partner-violence victimization prevalence, not perpetrator sex splits."}, {"name": "NCHS United States Life Tables, 2023", "url": "https://www.ncbi.nlm.nih.gov/books/NBK620699/", "use": "Period life-table data used by the life-span card."}], "case_cards": [{"metrics": {"d_mw": -14.994541944059407, "sd_ratio_mw": 0.7616288120555946, "overlap": 3.825060700883998e-14, "upper_threshold_z2": 10.519639441610977, "lower_threshold_z2": 10.260710558389025, "upper_tail_men": 0.0, "upper_tail_women": 0.999999486002951, "upper_tail_ratio_mw": 0.0, "lower_tail_men": 0.9999999999298029, "lower_tail_women": 0.0, "lower_tail_ratio_mw": null, "model_class": "elite/top-tail"}, "title": "Top 1000 100m", "source_name": "Alltime Athletics men's and women's all-time performance lists", "source_url": "https://www.alltime-athletics.com/m_100ok.htm", "method": "Parsed first 1000 performance marks from each main list and computed sample mean/SD.", "series": [{"label": "Men", "mean": 9.904860000000001, "sd": 0.05546762170002483, "n": 1000, "min_value": 9.58, "max_value": 9.97}, {"label": "Women", "mean": 10.875490000000001, "sd": 0.07282763049669923, "n": 1000, "min_value": 10.54, "max_value": 10.96}], "sample": "First 1000 repeated performances in the Alltime Athletics main 100m lists", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "seconds", "note": "Women's source: https://www.alltime-athletics.com/w_100ok.htm. Top-tail distributions, not population distributions.", "id": "top-1000-100m"}, {"metrics": {"d_mw": 10.339361246881483, "sd_ratio_mw": 0.9314085439910829, "overlap": 2.3034697666069325e-07, "upper_threshold_z2": 324.2772680173875, "lower_threshold_z2": 274.28800198261257, "upper_tail_men": 0.9994963222996288, "upper_tail_women": 2.1318502518852256e-12, "upper_tail_ratio_mw": 468839835919.88226, "lower_tail_men": 5.0959236830294685e-14, "lower_tail_women": 0.9989039974104511, "lower_tail_ratio_mw": 5.10151495663256e-14, "model_class": "elite/top-tail"}, "title": "Top 1000 raw deadlift", "source_name": "OpenPowerlifting Data Service, OpenIPF bulk CSV", "source_url": "https://openpowerlifting.gitlab.io/opl-csv/bulk-csv.html", "method": "Filtered to raw/tested/sanctioned SBD results, selected the top 1000 Best3DeadliftKg values for each sex, and computed sample mean/SD.", "series": [{"label": "Men", "mean": 363.88977, "sd": 12.045896723572511, "n": 1000, "min_value": 350.0, "max_value": 417.5}, {"label": "Women", "mean": 234.6755, "sd": 12.932989289486093, "n": 1000, "min_value": 220.0, "max_value": 290.0}], "sample": "Top 1000 raw, tested, sanctioned SBD meet results by sex in the OpenIPF bulk data", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "kg", "note": "Competition-result rows, not unique lifters and not a general-population strength distribution.", "id": "top-1000-raw-deadlift"}, {"metrics": {"d_mw": 0.7186292747760369, "sd_ratio_mw": 0.9384929856127195, "overlap": 0.7181827178052198, "upper_threshold_z2": 19.92024158427585, "lower_threshold_z2": 10.12608811766718, "upper_tail_men": 0.04500909538893427, "upper_tail_women": 0.011071432602908216, "upper_tail_ratio_mw": 4.065336167707095, "lower_tail_men": 0.007387383845220641, "lower_tail_women": 0.055801545893156, "lower_tail_ratio_mw": 0.13238672382599162, "model_class": "scale/ordinal"}, "title": "Mental rotation score", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from Rotation_score in the shared OSF data.", "series": [{"label": "Men", "mean": 15.90296052631579, "sd": 2.3696554492657333, "n": 1216, "min_value": 8.0, "max_value": 20.0}, {"label": "Women", "mean": 14.14336917562724, "sd": 2.52495808236504, "n": 1395, "min_value": 6.0, "max_value": 20.0}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Performance", "unit": "0-20 correct", "note": "Mental-rotation task raw score; higher is better. Public data: https://osf.io/kfxp3.", "id": "mental-rotation-score"}, {"metrics": {"d_mw": -0.5041227968636096, "sd_ratio_mw": 1.0980392156862746, "overlap": 0.7975193508835683, "upper_threshold_z2": 65.92335174523352, "lower_threshold_z2": 23.076648254766486, "upper_tail_men": 0.01562515698618483, "upper_tail_women": 0.03320673726724488, "upper_tail_ratio_mw": 0.47054177170237926, "lower_tail_men": 0.047289001423098775, "lower_tail_women": 0.009014196069220382, "lower_tail_ratio_mw": 5.246058667901673, "model_class": "psychometric/self-report"}, "title": "Empathy Quotient", "source_name": "Baron-Cohen & Wheelwright (2004), Empathy Quotient paper", "source_url": "https://docs.autismresearchcentre.com/papers/2004_BCandSW_EQ.pdf", "method": "Used published men/women mean and SD values for the EQ total score.", "series": [{"label": "Men", "mean": 41.8, "sd": 11.2, "n": 71, "min_value": 0.0, "max_value": 80.0}, {"label": "Women", "mean": 47.2, "sd": 10.2, "n": 126, "min_value": 0.0, "max_value": 80.0}], "sample": "Baron-Cohen & Wheelwright (2004) non-clinical control adults, Study 2", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "EQ score", "note": "Self-report empathy scale; combines cognitive and affective empathy items.", "id": "empathy-quotient"}, {"metrics": {"d_mw": -0.31308041287358046, "sd_ratio_mw": 1.1283072212300476, "overlap": 0.866863430304557, "upper_threshold_z2": 112.06405095294139, "lower_threshold_z2": 44.83365813206188, "upper_tail_men": 0.020794188624703613, "upper_tail_women": 0.024690571671187267, "upper_tail_ratio_mw": 0.8421914608388533, "lower_tail_men": 0.04077168483009297, "lower_tail_women": 0.010750864260651527, "lower_tail_ratio_mw": 3.792409972035319, "model_class": "continuous/sample"}, "title": "Life span", "source_name": "NCHS United States Life Tables, 2023, Tables 2 and 3", "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK620699/", "method": "Computed age-at-death mean and SD from the life-table dx distribution. For finite age intervals, death age is represented by the interval-average age implied by lx, dx, and Lx; for 100 and older, used 100 + Lx/dx.", "series": [{"label": "Men", "mean": 75.8177896497499, "sd": 17.788565671665463, "n": 100000, "min_value": 0.13100518994181737, "max_value": 102.01263536134216}, {"label": "Women", "mean": 81.07991943525339, "sd": 15.765711090879032, "n": 100000, "min_value": 0.13300202970743885, "max_value": 102.260891090221}], "sample": "NCHS 2023 U.S. complete period life tables; hypothetical cohort of 100,000 births by sex", "basis": "Men/Women life-table cohort", "group": "Body", "unit": "years", "note": "Period life table, not an observed birth cohort. Spreadsheet sources: men https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/NVSR/74-06/Table02.xlsx; women https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/NVSR/74-06/Table03.xlsx.", "id": "life-span"}, {"metrics": {"d_mw": 0.005891603336228754, "sd_ratio_mw": 1.0242164967285838, "overlap": 0.9882457691129116, "upper_threshold_z2": 0.25363097659342193, "lower_threshold_z2": -0.2246194594797102, "upper_tail_men": 0.02421440041708056, "upper_tail_women": 0.021313671852513094, "upper_tail_ratio_mw": 1.1360970828790087, "lower_tail_men": 0.023885005628452194, "lower_tail_women": 0.0216202391086876, "lower_tail_ratio_mw": 1.1047521495196855, "model_class": "binary/prevalence"}, "title": "Violent crime victimization", "source_name": "BJS Criminal Victimization, 2024, table 15 and appendix tables 17/19", "source_url": "https://bjs.ojp.gov/library/publications/criminal-victimization-2024", "method": "Parsed BJS table 15 victim counts by sex and appendix table 19 populations age 12+ by sex. Mean is count divided by population as a 0/1 prevalence indicator; SD is sqrt(p(1-p)).", "series": [{"label": "Men", "mean": 0.014857966289946024, "sd": 0.12098432595866644, "n": 140346260, "min_value": 0.0, "max_value": 1.0}, {"label": "Women", "mean": 0.014153550823765694, "sd": 0.11812378178353745, "n": 146026960, "min_value": 0.0, "max_value": 1.0}], "sample": "BJS National Crime Victimization Survey, persons age 12+ in the United States, 2024", "basis": "Men/Women national prevalence", "group": "Social/behavior", "unit": "proportion victimized", "note": "Nonfatal violent crime includes rape/sexual assault, robbery, aggravated assault, and simple assault; homicide is excluded by NCVS design. Rate equivalents: Men 14.9 per 1,000; Women 14.2 per 1,000. BJS sampling SEs for the published percentages are 0.089 and 0.098 percentage points. Data zip: https://bjs.ojp.gov/document/cv24.zip; PDF: https://bjs.ojp.gov/document/cv24.pdf.", "id": "violent-crime-victimization"}, {"metrics": {"d_mw": -0.15309133124992758, "sd_ratio_mw": 0.6751579088498524, "overlap": 0.805062894576168, "upper_threshold_z2": 0.41635881275219133, "lower_threshold_z2": -0.3413588127521914, "upper_tail_men": 0.004344121479975316, "upper_tail_women": 0.05039288128911168, "upper_tail_ratio_mw": 0.08620506247801997, "lower_tail_men": 0.007536389180835545, "lower_tail_women": 0.03822460411128553, "lower_tail_ratio_mw": 0.1971606863185401, "model_class": "binary/prevalence"}, "title": "Domestic violence victimization", "source_name": "CDC NISVS 2023/2024 Intimate Partner Violence Data Brief, tables 1 and 4", "source_url": "https://www.cdc.gov/nisvs/media/pdfs/intimatepartnerviolence-brief.pdf", "method": "Used CDC NISVS 12-month weighted percentages and rounded victim counts. Mean is the weighted prevalence as a 0/1 indicator; SD is sqrt(p(1-p)); n is the implied denominator from rounded count divided by rounded percentage.", "series": [{"label": "Men", "mean": 0.023, "sd": 0.14990330216509573, "n": 122304348, "min_value": 0.0, "max_value": 1.0}, {"label": "Women", "mean": 0.052000000000000005, "sd": 0.2220270253820467, "n": 128923077, "min_value": 0.0, "max_value": 1.0}], "sample": "CDC NISVS 2023/2024 annualized U.S. adults; 12-month contact sexual violence, physical violence, and/or stalking by an intimate partner", "basis": "Men/Women national prevalence", "group": "Social/behavior", "unit": "proportion victimized", "note": "Domestic-violence label here uses the CDC intimate-partner-violence measure, not the broader BJS domestic-violence crime category. 12-month rates: Men 2.3% (2,813,000; 95% CI 1.6-3.3%); Women 5.2% (6,704,000; 95% CI 4.6-6.0%).", "id": "domestic-violence-victimization"}], "atlas_cards": [{"metrics": {"d_mw": 1.8543945641693036, "sd_ratio_mw": 1.0946258928071515, "overlap": 0.3527628427313345, "upper_threshold_z2": 181.67177585127473, "lower_threshold_z2": 152.16381297880258, "upper_tail_men": 0.1520972755880723, "upper_tail_women": 0.0010745362976640749, "upper_tail_ratio_mw": 141.54689415212425, "lower_tail_men": 0.002527313834429612, "lower_tail_women": 0.13035680025032326, "lower_tail_ratio_mw": 0.019387663931428423, "model_class": "continuous/sample"}, "title": "Height", "source_name": "CDC NHANES P_BMX public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_BMX.htm", "method": "Computed sex-specific sample mean and sample SD from BMXHT.", "series": [{"label": "Men", "mean": 173.7577201588414, "sd": 7.702394750632288, "n": 4281, "min_value": 144.6, "max_value": 199.6}, {"label": "Women", "mean": 160.0778686712359, "sd": 7.03655449888876, "n": 4523, "min_value": 131.1, "max_value": 189.3}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Body", "unit": "cm", "note": "Unweighted NHANES public-use sample; normal fit is descriptive.", "id": "height"}, {"metrics": {"d_mw": -0.31308041287358046, "sd_ratio_mw": 1.1283072212300476, "overlap": 0.866863430304557, "upper_threshold_z2": 112.06405095294139, "lower_threshold_z2": 44.83365813206188, "upper_tail_men": 0.020794188624703613, "upper_tail_women": 0.024690571671187267, "upper_tail_ratio_mw": 0.8421914608388533, "lower_tail_men": 0.04077168483009297, "lower_tail_women": 0.010750864260651527, "lower_tail_ratio_mw": 3.792409972035319, "model_class": "continuous/sample"}, "title": "Life span", "source_name": "NCHS United States Life Tables, 2023, Tables 2 and 3", "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK620699/", "method": "Computed age-at-death mean and SD from the life-table dx distribution. For finite age intervals, death age is represented by the interval-average age implied by lx, dx, and Lx; for 100 and older, used 100 + Lx/dx.", "series": [{"label": "Men", "mean": 75.8177896497499, "sd": 17.788565671665463, "n": 100000, "min_value": 0.13100518994181737, "max_value": 102.01263536134216}, {"label": "Women", "mean": 81.07991943525339, "sd": 15.765711090879032, "n": 100000, "min_value": 0.13300202970743885, "max_value": 102.260891090221}], "sample": "NCHS 2023 U.S. complete period life tables; hypothetical cohort of 100,000 births by sex", "basis": "Men/Women life-table cohort", "group": "Body", "unit": "years", "note": "Period life table, not an observed birth cohort. Spreadsheet sources: men https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/NVSR/74-06/Table02.xlsx; women https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/NVSR/74-06/Table03.xlsx.", "id": "life-span"}, {"metrics": {"d_mw": 0.9526948695592727, "sd_ratio_mw": 1.020179064063618, "overlap": 0.63373455964107, "upper_threshold_z2": 1.2149896652210828, "lower_threshold_z2": 0.634752269737353, "upper_tail_men": 0.06569297958807407, "upper_tail_women": 0.006184166004308711, "upper_tail_ratio_mw": 10.622771048238942, "lower_tail_men": 0.007103652251090664, "lower_tail_women": 0.06188966391055856, "lower_tail_ratio_mw": 0.1147792991953663, "model_class": "continuous/sample"}, "title": "Femur BMD", "source_name": "CDC NHANES P_DXXFEM public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_DXXFEM.htm", "method": "Computed sex-specific sample mean and sample SD from DXXOFBMD.", "series": [{"label": "Men", "mean": 0.9939696162046908, "sd": 0.146501002077344, "n": 1876, "min_value": 0.483, "max_value": 1.611}, {"label": "Women", "mean": 0.8557723187537448, "sd": 0.1436032234319683, "n": 1669, "min_value": 0.37, "max_value": 1.367}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Body", "unit": "g/cm²", "note": "DXA public-use sample; not a diagnostic threshold.", "id": "femur-bmd"}, {"metrics": {"d_mw": 0.7186292747760369, "sd_ratio_mw": 0.9384929856127195, "overlap": 0.7181827178052198, "upper_threshold_z2": 19.92024158427585, "lower_threshold_z2": 10.12608811766718, "upper_tail_men": 0.04500909538893427, "upper_tail_women": 0.011071432602908216, "upper_tail_ratio_mw": 4.065336167707095, "lower_tail_men": 0.007387383845220641, "lower_tail_women": 0.055801545893156, "lower_tail_ratio_mw": 0.13238672382599162, "model_class": "scale/ordinal"}, "title": "Mental rotation score", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from Rotation_score in the shared OSF data.", "series": [{"label": "Men", "mean": 15.90296052631579, "sd": 2.3696554492657333, "n": 1216, "min_value": 8.0, "max_value": 20.0}, {"label": "Women", "mean": 14.14336917562724, "sd": 2.52495808236504, "n": 1395, "min_value": 6.0, "max_value": 20.0}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Performance", "unit": "0-20 correct", "note": "Mental-rotation task raw score; higher is better. Public data: https://osf.io/kfxp3.", "id": "mental-rotation-score"}, {"metrics": {"d_mw": -0.20189180790073602, "sd_ratio_mw": 1.0405480533703904, "overlap": 0.9180677074301197, "upper_threshold_z2": 34.68319223185513, "lower_threshold_z2": 20.462659221396965, "upper_tail_men": 0.019679309856824867, "upper_tail_women": 0.02631538954159085, "upper_tail_ratio_mw": 0.7478251395717394, "lower_tail_men": 0.0312719181618914, "lower_tail_women": 0.01601789781540197, "lower_tail_ratio_mw": 1.9523110037461946, "model_class": "scale/ordinal"}, "title": "Emotion recognition", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from Eyes_raw_score in the shared OSF data.", "series": [{"label": "Men", "mean": 27.21404958677686, "sd": 3.625062237510821, "n": 1210, "min_value": 10.0, "max_value": 35.0}, {"label": "Women", "mean": 27.931801866475233, "sd": 3.4838008929708266, "n": 1393, "min_value": 11.0, "max_value": 36.0}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Performance", "unit": "0-36 correct", "note": "Reading-the-Mind-in-the-Eyes raw score; higher is better. Public data: https://osf.io/kfxp3.", "id": "emotion-recognition"}, {"metrics": {"d_mw": -0.32133828201968834, "sd_ratio_mw": 0.9936176985999537, "overlap": 0.8723287663927534, "upper_threshold_z2": 26.085231933078795, "lower_threshold_z2": 8.439211586788067, "upper_tail_men": 0.015093822206562857, "upper_tail_women": 0.03336630304745758, "upper_tail_ratio_mw": 0.45236723364571146, "lower_tail_men": 0.03250076466107682, "lower_tail_women": 0.01562851213359051, "lower_tail_ratio_mw": 2.0795814971549733, "model_class": "continuous/sample"}, "title": "Verbal fluency", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from verbfluency in the shared OSF data.", "series": [{"label": "Men", "mean": 16.55342902711324, "sd": 4.397359707238373, "n": 1254, "min_value": 3.66666666666667, "max_value": 37.3333333333333}, {"label": "Women", "mean": 17.97101449275362, "sd": 4.425605253846047, "n": 1426, "min_value": 5.0, "max_value": 35.6666666666667}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Performance", "unit": "approved words", "note": "Mean approved words across verbal fluency prompts; higher is better. Public data: https://osf.io/kfxp3.", "id": "verbal-fluency"}, {"metrics": {"d_mw": -0.35956892829141524, "sd_ratio_mw": 0.955165334662501, "overlap": 0.8561508438608963, "upper_threshold_z2": 16.21373286217506, "lower_threshold_z2": 0.658344855214362, "upper_tail_men": 0.012823034859740234, "upper_tail_women": 0.037547886849565226, "upper_tail_ratio_mw": 0.34151149200793746, "lower_tail_men": 0.031201248884053512, "lower_tail_women": 0.016524821220912977, "lower_tail_ratio_mw": 1.8881444142080515, "model_class": "scale/ordinal"}, "title": "Word recall", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from Word_memory_free_recall_answer_correct_number in the shared OSF data.", "series": [{"label": "Men", "mean": 7.736884584342212, "sd": 3.7986716892862837, "n": 1239, "min_value": 1.0, "max_value": 20.0}, {"label": "Women", "mean": 9.13519313304721, "sd": 3.976978174808354, "n": 1398, "min_value": 1.0, "max_value": 20.0}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Performance", "unit": "0-20 correct", "note": "Free-recall word-memory score; higher is better. Public data: https://osf.io/kfxp3.", "id": "word-recall"}, {"metrics": {"d_mw": -14.994541944059407, "sd_ratio_mw": 0.7616288120555946, "overlap": 3.825060700883998e-14, "upper_threshold_z2": 10.519639441610977, "lower_threshold_z2": 10.260710558389025, "upper_tail_men": 0.0, "upper_tail_women": 0.999999486002951, "upper_tail_ratio_mw": 0.0, "lower_tail_men": 0.9999999999298029, "lower_tail_women": 0.0, "lower_tail_ratio_mw": null, "model_class": "elite/top-tail"}, "title": "Top 1000 100m", "source_name": "Alltime Athletics men's and women's all-time performance lists", "source_url": "https://www.alltime-athletics.com/m_100ok.htm", "method": "Parsed first 1000 performance marks from each main list and computed sample mean/SD.", "series": [{"label": "Men", "mean": 9.904860000000001, "sd": 0.05546762170002483, "n": 1000, "min_value": 9.58, "max_value": 9.97}, {"label": "Women", "mean": 10.875490000000001, "sd": 0.07282763049669923, "n": 1000, "min_value": 10.54, "max_value": 10.96}], "sample": "First 1000 repeated performances in the Alltime Athletics main 100m lists", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "seconds", "note": "Women's source: https://www.alltime-athletics.com/w_100ok.htm. Top-tail distributions, not population distributions.", "id": "top-1000-100m"}, {"metrics": {"d_mw": -9.791315716805546, "sd_ratio_mw": 0.53616519563542, "overlap": 3.0066327928654063e-07, "upper_threshold_z2": 136.58522443169633, "lower_threshold_z2": 130.15035890163702, "upper_tail_men": 0.0, "upper_tail_women": 0.9899179104854767, "upper_tail_ratio_mw": 0.0, "lower_tail_men": 0.9999926501193415, "lower_tail_women": 1.5775327044664778e-08, "lower_tail_ratio_mw": 63389662.05189004, "model_class": "elite/top-tail"}, "title": "Top 1000 marathon", "source_name": "Alltime Athletics men's and women's all-time performance lists", "source_url": "https://www.alltime-athletics.com/mmaraok.htm", "method": "Parsed first 1000 performance marks from each main list and computed sample mean/SD.", "series": [{"label": "Men", "mean": 125.49206666666667, "sd": 1.075038496981487, "n": 1000, "min_value": 119.5, "max_value": 126.75}, {"label": "Women", "mean": 141.24351666666666, "sd": 2.0050508793422104, "n": 1000, "min_value": 129.93333333333334, "max_value": 143.5}], "sample": "First 1000 repeated performances in the Alltime Athletics main marathon lists", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "minutes", "note": "Women's source: https://www.alltime-athletics.com/wmaraok.htm. Top-tail distributions, not population distributions.", "id": "top-1000-marathon"}, {"metrics": {"d_mw": 10.339361246881483, "sd_ratio_mw": 0.9314085439910829, "overlap": 2.3034697666069325e-07, "upper_threshold_z2": 324.2772680173875, "lower_threshold_z2": 274.28800198261257, "upper_tail_men": 0.9994963222996288, "upper_tail_women": 2.1318502518852256e-12, "upper_tail_ratio_mw": 468839835919.88226, "lower_tail_men": 5.0959236830294685e-14, "lower_tail_women": 0.9989039974104511, "lower_tail_ratio_mw": 5.10151495663256e-14, "model_class": "elite/top-tail"}, "title": "Top 1000 raw deadlift", "source_name": "OpenPowerlifting Data Service, OpenIPF bulk CSV", "source_url": "https://openpowerlifting.gitlab.io/opl-csv/bulk-csv.html", "method": "Filtered to raw/tested/sanctioned SBD results, selected the top 1000 Best3DeadliftKg values for each sex, and computed sample mean/SD.", "series": [{"label": "Men", "mean": 363.88977, "sd": 12.045896723572511, "n": 1000, "min_value": 350.0, "max_value": 417.5}, {"label": "Women", "mean": 234.6755, "sd": 12.932989289486093, "n": 1000, "min_value": 220.0, "max_value": 290.0}], "sample": "Top 1000 raw, tested, sanctioned SBD meet results by sex in the OpenIPF bulk data", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "kg", "note": "Competition-result rows, not unique lifters and not a general-population strength distribution.", "id": "top-1000-raw-deadlift"}, {"metrics": {"d_mw": 10.049171495582941, "sd_ratio_mw": 1.0830101107142953, "overlap": 4.936774743209154e-07, "upper_threshold_z2": 207.58211064893683, "lower_threshold_z2": 164.45494935106316, "upper_tail_men": 0.99819851962923, "upper_tail_women": 1.2223555501122974e-13, "upper_tail_ratio_mw": 8166187976464.997, "lower_tail_men": 6.864508961257343e-12, "lower_tail_women": 0.9991909432649557, "lower_tail_ratio_mw": 6.87006723542437e-12, "model_class": "elite/top-tail"}, "title": "Top 1000 raw bench press", "source_name": "OpenPowerlifting Data Service, OpenIPF bulk CSV", "source_url": "https://openpowerlifting.gitlab.io/opl-csv/bulk-csv.html", "method": "Filtered to raw/tested/sanctioned SBD results, selected the top 1000 Best3BenchKg values for each sex, and computed sample mean/SD.", "series": [{"label": "Men", "mean": 240.19256, "sd": 11.202563942476976, "n": 1000, "min_value": 227.5, "max_value": 291.5}, {"label": "Women", "mean": 131.8445, "sd": 10.343914458091593, "n": 1000, "min_value": 120.0, "max_value": 167.5}], "sample": "Top 1000 raw, tested, sanctioned SBD meet results by sex in the OpenIPF bulk data", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "kg", "note": "Competition-result rows, not unique lifters and not a general-population strength distribution.", "id": "top-1000-raw-bench-press"}, {"metrics": {"d_mw": -21.48017421719166, "sd_ratio_mw": 1.0212639831745478, "overlap": 6.544446251014163e-27, "upper_threshold_z2": 50.46528339163566, "lower_threshold_z2": 49.50386660836434, "upper_tail_men": 0.0, "upper_tail_women": 1.0, "upper_tail_ratio_mw": 0.0, "lower_tail_men": 1.0, "lower_tail_women": 0.0, "lower_tail_ratio_mw": null, "model_class": "elite/top-tail"}, "title": "Top 200 swimming 100m freestyle", "source_name": "World Aquatics swimming rankings", "source_url": "https://www.worldaquatics.com/swimming/rankings", "method": "Downloaded the official rankings CSV export for each sex and computed sample mean/SD from swim_time.", "series": [{"label": "Men", "mean": 47.40315, "sd": 0.24286931676341011, "n": 200, "min_value": 46.4, "max_value": 47.67}, {"label": "Women", "mean": 52.566, "sd": 0.23781247626932173, "n": 200, "min_value": 51.71, "max_value": 52.83}], "sample": "Official World Aquatics all-time LCM ranking CSV export, top 200 returned rows for 100m freestyle by sex", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "seconds", "note": "The World Aquatics CSV export returned 200 rows per query from this endpoint; these are ranking performances, not population distributions.", "id": "top-200-swimming-100m-freestyle"}, {"metrics": {"d_mw": 0.93, "sd_ratio_mw": 1.0, "overlap": 0.6419332688375223, "upper_threshold_z2": 2.0, "lower_threshold_z2": -2.0, "upper_tail_men": 0.06239191401912314, "upper_tail_women": 0.0068506625771707075, "upper_tail_ratio_mw": 9.107427685467865, "lower_tail_men": 0.006850662577170652, "lower_tail_women": 0.06239191401912314, "lower_tail_ratio_mw": 0.1098004875290558, "model_class": "psychometric/self-report"}, "title": "Things-People vocational interest", "source_name": "Su, Rounds & Armstrong (2009), Psychological Bulletin, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/19883140/", "method": "Converted the published Things-People Cohen's d = 0.93 into two unit-SD normal curves centered at +/- d/2.", "series": [{"label": "Men", "mean": 0.465, "sd": 1.0, "n": null, "min_value": null, "max_value": null}, {"label": "Women", "mean": -0.465, "sd": 1.0, "n": null, "min_value": null, "max_value": null}], "sample": "Su, Rounds & Armstrong (2009) vocational-interest meta-analysis; 503,188 respondents across 47 interest inventories", "basis": "Men/Women meta-analysis", "group": "Preferences", "unit": "standardized score", "note": "Standardized reconstruction from a meta-analytic effect size, not raw item-score data.", "id": "things-people-vocational-interest"}, {"metrics": {"d_mw": -0.37156883086753456, "sd_ratio_mw": 1.0270477742194688, "overlap": 0.8522262040902943, "upper_threshold_z2": 5.277955619900598, "lower_threshold_z2": 2.352570016044859, "upper_tail_men": 0.01549525200194335, "upper_tail_women": 0.0329638801735197, "upper_tail_ratio_mw": 0.47006759884993393, "lower_tail_men": 0.03668791927958548, "lower_tail_women": 0.013361444956981217, "lower_tail_ratio_mw": 2.745804768698794, "model_class": "psychometric/self-report"}, "title": "Interest in people", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from peoplescore in the shared OSF data.", "series": [{"label": "Men", "mean": 3.6793900543900544, "sd": 0.7410391049389722, "n": 1287, "min_value": 1.25, "max_value": 6.0}, {"label": "Women", "mean": 3.951135581555403, "sd": 0.7215235002112182, "n": 1453, "min_value": 1.375, "max_value": 6.0}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Preferences", "unit": "mean 1-6 item score", "note": "Mean of person-oriented everyday-interest items; higher means stronger interest. Public data: https://osf.io/kfxp3.", "id": "interest-in-people"}, {"metrics": {"d_mw": 1.1031087592366833, "sd_ratio_mw": 1.0796558831425063, "overlap": 0.5800693545802258, "upper_threshold_z2": 5.19432326751398, "lower_threshold_z2": 0.8983287008434258, "upper_tail_men": 0.08135180643634377, "upper_tail_women": 0.003963974381385071, "upper_tail_ratio_mw": 20.5227881437312, "lower_tail_men": 0.006961753173082341, "lower_tail_women": 0.06587475088097339, "lower_tail_ratio_mw": 0.10568166224508797, "model_class": "psychometric/self-report"}, "title": "Interest in things", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from thingsscore in the shared OSF data.", "series": [{"label": "Men", "mean": 3.6386946386946386, "sd": 1.1143183087213628, "n": 1287, "min_value": 1.0, "max_value": 6.0}, {"label": "Women", "mean": 2.453957329662767, "sd": 1.0321050680314603, "n": 1453, "min_value": 1.0, "max_value": 5.8}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Preferences", "unit": "mean 1-6 item score", "note": "Mean of object/mechanical everyday-interest items; higher means stronger interest. Public data: https://osf.io/kfxp3.", "id": "interest-in-things"}, {"metrics": {"d_mw": -0.3517187374700702, "sd_ratio_mw": 1.0833333333333335, "overlap": 0.8568510291169152, "upper_threshold_z2": 4.93099960031968, "lower_threshold_z2": 2.4290003996803193, "upper_tail_men": 0.018136871009041045, "upper_tail_women": 0.028607416716127543, "upper_tail_ratio_mw": 0.6339919185648214, "lower_tail_men": 0.03959682344890464, "lower_tail_women": 0.01165446914863466, "lower_tail_ratio_mw": 3.3975655985621165, "model_class": "psychometric/self-report"}, "title": "Agreeableness", "source_name": "Soto & John (2017) BFI-2 validation paper, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/27055049/", "method": "Used Table 5 men/women mean and SD values from the Internet validation sample.", "series": [{"label": "Men", "mean": 3.57, "sd": 0.65, "n": 500, "min_value": 1.0, "max_value": 5.0}, {"label": "Women", "mean": 3.79, "sd": 0.6, "n": 500, "min_value": 1.0, "max_value": 5.0}], "sample": "BFI-2 Study 3 Internet validation sample, Table 5", "basis": "Men/Women published statistics", "group": "Personality", "unit": "1-5 score", "note": "Self-report temperament/personality scale; normal curve is descriptive.", "id": "agreeableness"}, {"metrics": {"d_mw": -0.26736956911078436, "sd_ratio_mw": 1.0476190476190477, "overlap": 0.8920588487125187, "upper_threshold_z2": 4.785465053408526, "lower_threshold_z2": 1.344534946591475, "upper_tail_men": 0.018500377130839185, "upper_tail_women": 0.0279850796648069, "upper_tail_ratio_mw": 0.6610800237994191, "lower_tail_men": 0.034046407272575574, "lower_tail_women": 0.014441584367828497, "lower_tail_ratio_mw": 2.357525767631197, "model_class": "psychometric/self-report"}, "title": "Negative emotionality", "source_name": "Soto & John (2017) BFI-2 validation paper, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/27055049/", "method": "Used Table 5 men/women mean and SD values from the Internet validation sample.", "series": [{"label": "Men", "mean": 2.95, "sd": 0.88, "n": 500, "min_value": 1.0, "max_value": 5.0}, {"label": "Women", "mean": 3.18, "sd": 0.84, "n": 500, "min_value": 1.0, "max_value": 5.0}], "sample": "BFI-2 Study 3 Internet validation sample, Table 5", "basis": "Men/Women published statistics", "group": "Personality", "unit": "1-5 score", "note": "Self-report temperament/personality scale; normal curve is descriptive.", "id": "negative-emotionality"}, {"metrics": {"d_mw": 0.0, "sd_ratio_mw": 0.989247311827957, "overlap": 0.9947681782380989, "upper_threshold_z2": 5.130027026829608, "lower_threshold_z2": 1.4299729731703916, "upper_tail_men": 0.022168066060338942, "upper_tail_women": 0.023335353042069684, "upper_tail_ratio_mw": 0.949977744942349, "lower_tail_men": 0.022168066060338942, "lower_tail_women": 0.023335353042069684, "lower_tail_ratio_mw": 0.949977744942349, "model_class": "psychometric/self-report"}, "title": "Assertiveness", "source_name": "Soto & John (2017) BFI-2 validation paper, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/27055049/", "method": "Used Table 5 men/women mean and SD values from the Internet validation sample.", "series": [{"label": "Men", "mean": 3.28, "sd": 0.92, "n": 500, "min_value": 1.0, "max_value": 5.0}, {"label": "Women", "mean": 3.28, "sd": 0.93, "n": 500, "min_value": 1.0, "max_value": 5.0}], "sample": "BFI-2 Study 3 Internet validation sample, Table 5", "basis": "Men/Women published statistics", "group": "Personality", "unit": "1-5 score", "note": "Self-report temperament/personality scale; normal curve is descriptive.", "id": "assertiveness"}, {"metrics": {"d_mw": 0.030526347499684952, "sd_ratio_mw": 0.9552238805970149, "overlap": 0.9754191653260634, "upper_threshold_z2": 5.230343466423975, "lower_threshold_z2": 2.6096565335760245, "upper_tail_men": 0.021087628812994197, "upper_tail_women": 0.02438128118493388, "upper_tail_ratio_mw": 0.8649106112612756, "lower_tail_men": 0.01955457232814517, "lower_tail_women": 0.02614059440968375, "lower_tail_ratio_mw": 0.7480538514801792, "model_class": "psychometric/self-report"}, "title": "Open-mindedness", "source_name": "Soto & John (2017) BFI-2 validation paper, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/27055049/", "method": "Used Table 5 men/women mean and SD values from the Internet validation sample.", "series": [{"label": "Men", "mean": 3.93, "sd": 0.64, "n": 500, "min_value": 1.0, "max_value": 5.0}, {"label": "Women", "mean": 3.91, "sd": 0.67, "n": 500, "min_value": 1.0, "max_value": 5.0}], "sample": "BFI-2 Study 3 Internet validation sample, Table 5", "basis": "Men/Women published statistics", "group": "Personality", "unit": "1-5 score", "note": "Self-report temperament/personality scale; normal curve is descriptive.", "id": "open-mindedness"}, {"metrics": {"d_mw": -0.20251542162233846, "sd_ratio_mw": 0.975, "overlap": 0.9187189914424567, "upper_threshold_z2": 4.810126577208294, "lower_threshold_z2": 1.6498734227917056, "upper_tail_men": 0.01665331665173353, "upper_tail_women": 0.030385479911067215, "upper_tail_ratio_mw": 0.5480682451116377, "lower_tail_men": 0.027225008070486667, "lower_tail_women": 0.018985936613761356, "lower_tail_ratio_mw": 1.4339565450120317, "model_class": "psychometric/self-report"}, "title": "Extraversion", "source_name": "Soto & John (2017) BFI-2 validation paper, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/27055049/", "method": "Used Table 5 men/women mean and SD values from the Internet validation sample.", "series": [{"label": "Men", "mean": 3.15, "sd": 0.78, "n": 500, "min_value": 1.0, "max_value": 5.0}, {"label": "Women", "mean": 3.31, "sd": 0.8, "n": 500, "min_value": 1.0, "max_value": 5.0}], "sample": "BFI-2 Study 3 Internet validation sample, Table 5", "basis": "Men/Women published statistics", "group": "Personality", "unit": "1-5 score", "note": "Self-report temperament/personality scale; normal curve is descriptive.", "id": "extraversion"}, {"metrics": {"d_mw": 0.8924683506587586, "sd_ratio_mw": 1.1666666666666667, "overlap": 0.6498088244200995, "upper_threshold_z2": 35.44224529144583, "lower_threshold_z2": 6.757754708554174, "upper_tail_men": 0.07394218226782989, "upper_tail_women": 0.003931274913619109, "upper_tail_ratio_mw": 18.808703001581524, "lower_tail_men": 0.011356924980798988, "lower_tail_women": 0.04568460021032672, "lower_tail_ratio_mw": 0.24859416364623949, "model_class": "psychometric/self-report"}, "title": "Physical aggression", "source_name": "Buss & Perry (1992), The Aggression Questionnaire, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/1403624/", "method": "Used Table 4 men/women mean and SD values for BPAQ subscales.", "series": [{"label": "Men", "mean": 24.3, "sd": 7.7, "n": 612, "min_value": 9.0, "max_value": 45.0}, {"label": "Women", "mean": 17.9, "sd": 6.6, "n": 641, "min_value": 9.0, "max_value": 45.0}], "sample": "Buss & Perry Aggression Questionnaire normative sample, Table 4", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "BPAQ score", "note": "Validated self-report aggression scale; descriptive scale scores only, not a behavioral diagnosis.", "id": "physical-aggression"}, {"metrics": {"d_mw": 0.43589743589743574, "sd_ratio_mw": 1.0, "overlap": 0.8274699227675455, "upper_threshold_z2": 22.15, "lower_threshold_z2": 6.55, "upper_tail_men": 0.03737043468231671, "upper_tail_women": 0.013279164601609272, "upper_tail_ratio_mw": 2.8142157886790464, "lower_tail_men": 0.013279164601609272, "lower_tail_women": 0.03737043468231671, "lower_tail_ratio_mw": 0.3553387782211918, "model_class": "psychometric/self-report"}, "title": "Verbal aggression", "source_name": "Buss & Perry (1992), The Aggression Questionnaire, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/1403624/", "method": "Used Table 4 men/women mean and SD values for BPAQ subscales.", "series": [{"label": "Men", "mean": 15.2, "sd": 3.9, "n": 612, "min_value": 5.0, "max_value": 25.0}, {"label": "Women", "mean": 13.5, "sd": 3.9, "n": 641, "min_value": 5.0, "max_value": 25.0}], "sample": "Buss & Perry Aggression Questionnaire normative sample, Table 4", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "BPAQ score", "note": "Validated self-report aggression scale; descriptive scale scores only, not a behavioral diagnosis.", "id": "verbal-aggression"}, {"metrics": {"d_mw": 0.05262348115842188, "sd_ratio_mw": 0.9655172413793103, "overlap": 0.9743503487031784, "upper_threshold_z2": 28.251754250991382, "lower_threshold_z2": 5.448245749008622, "upper_tail_men": 0.022255746754905825, "upper_tail_women": 0.0232029927209223, "upper_tail_ratio_mw": 0.9591756986950077, "lower_tail_men": 0.019565186900492915, "lower_tail_women": 0.02619241969800068, "lower_tail_ratio_mw": 0.7469789781196261, "model_class": "psychometric/self-report"}, "title": "Anger", "source_name": "Buss & Perry (1992), The Aggression Questionnaire, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/1403624/", "method": "Used Table 4 men/women mean and SD values for BPAQ subscales.", "series": [{"label": "Men", "mean": 17.0, "sd": 5.6, "n": 612, "min_value": 7.0, "max_value": 35.0}, {"label": "Women", "mean": 16.7, "sd": 5.8, "n": 641, "min_value": 7.0, "max_value": 35.0}], "sample": "Buss & Perry Aggression Questionnaire normative sample, Table 4", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "BPAQ score", "note": "Validated self-report aggression scale; descriptive scale scores only, not a behavioral diagnosis.", "id": "anger"}, {"metrics": {"d_mw": -0.5041227968636096, "sd_ratio_mw": 1.0980392156862746, "overlap": 0.7975193508835683, "upper_threshold_z2": 65.92335174523352, "lower_threshold_z2": 23.076648254766486, "upper_tail_men": 0.01562515698618483, "upper_tail_women": 0.03320673726724488, "upper_tail_ratio_mw": 0.47054177170237926, "lower_tail_men": 0.047289001423098775, "lower_tail_women": 0.009014196069220382, "lower_tail_ratio_mw": 5.246058667901673, "model_class": "psychometric/self-report"}, "title": "Empathy Quotient", "source_name": "Baron-Cohen & Wheelwright (2004), Empathy Quotient paper", "source_url": "https://docs.autismresearchcentre.com/papers/2004_BCandSW_EQ.pdf", "method": "Used published men/women mean and SD values for the EQ total score.", "series": [{"label": "Men", "mean": 41.8, "sd": 11.2, "n": 71, "min_value": 0.0, "max_value": 80.0}, {"label": "Women", "mean": 47.2, "sd": 10.2, "n": 126, "min_value": 0.0, "max_value": 80.0}], "sample": "Baron-Cohen & Wheelwright (2004) non-clinical control adults, Study 2", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "EQ score", "note": "Self-report empathy scale; combines cognitive and affective empathy items.", "id": "empathy-quotient"}, {"metrics": {"d_mw": -1.2388957045446456, "sd_ratio_mw": 0.9751552795031054, "overlap": 0.5355040242984539, "upper_threshold_z2": 111.95251562376788, "lower_threshold_z2": 48.347484376232124, "upper_tail_men": 0.00398868070147218, "upper_tail_women": 0.08636087229325129, "upper_tail_ratio_mw": 0.0461862021023597, "lower_tail_men": 0.08101909304351429, "lower_tail_women": 0.004839195540626173, "lower_tail_ratio_mw": 16.742264775899248, "model_class": "psychometric/self-report"}, "title": "Friendship score", "source_name": "Baron-Cohen & Wheelwright (2003), Friendship Questionnaire paper", "source_url": "https://docs.autismresearchcentre.com/papers/2003_BCandSW_FQ.pdf", "method": "Used published Study 1 men/women mean and SD values for the FQ total score.", "series": [{"label": "Men", "mean": 70.3, "sd": 15.7, "n": 27, "min_value": 0.0, "max_value": 135.0}, {"label": "Women", "mean": 90.0, "sd": 16.1, "n": 49, "min_value": 0.0, "max_value": 135.0}], "sample": "Baron-Cohen & Wheelwright (2003) general-population adults, Study 1", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "FQ score", "note": "Self-report friendship-style scale; higher score reflects the scale's model of close, empathic, supportive friendship.", "id": "friendship-score"}, {"metrics": {"d_mw": 0.005891603336228754, "sd_ratio_mw": 1.0242164967285838, "overlap": 0.9882457691129116, "upper_threshold_z2": 0.25363097659342193, "lower_threshold_z2": -0.2246194594797102, "upper_tail_men": 0.02421440041708056, "upper_tail_women": 0.021313671852513094, "upper_tail_ratio_mw": 1.1360970828790087, "lower_tail_men": 0.023885005628452194, "lower_tail_women": 0.0216202391086876, "lower_tail_ratio_mw": 1.1047521495196855, "model_class": "binary/prevalence"}, "title": "Violent crime victimization", "source_name": "BJS Criminal Victimization, 2024, table 15 and appendix tables 17/19", "source_url": "https://bjs.ojp.gov/library/publications/criminal-victimization-2024", "method": "Parsed BJS table 15 victim counts by sex and appendix table 19 populations age 12+ by sex. Mean is count divided by population as a 0/1 prevalence indicator; SD is sqrt(p(1-p)).", "series": [{"label": "Men", "mean": 0.014857966289946024, "sd": 0.12098432595866644, "n": 140346260, "min_value": 0.0, "max_value": 1.0}, {"label": "Women", "mean": 0.014153550823765694, "sd": 0.11812378178353745, "n": 146026960, "min_value": 0.0, "max_value": 1.0}], "sample": "BJS National Crime Victimization Survey, persons age 12+ in the United States, 2024", "basis": "Men/Women national prevalence", "group": "Social/behavior", "unit": "proportion victimized", "note": "Nonfatal violent crime includes rape/sexual assault, robbery, aggravated assault, and simple assault; homicide is excluded by NCVS design. Rate equivalents: Men 14.9 per 1,000; Women 14.2 per 1,000. BJS sampling SEs for the published percentages are 0.089 and 0.098 percentage points. Data zip: https://bjs.ojp.gov/document/cv24.zip; PDF: https://bjs.ojp.gov/document/cv24.pdf.", "id": "violent-crime-victimization"}, {"metrics": {"d_mw": -0.15309133124992758, "sd_ratio_mw": 0.6751579088498524, "overlap": 0.805062894576168, "upper_threshold_z2": 0.41635881275219133, "lower_threshold_z2": -0.3413588127521914, "upper_tail_men": 0.004344121479975316, "upper_tail_women": 0.05039288128911168, "upper_tail_ratio_mw": 0.08620506247801997, "lower_tail_men": 0.007536389180835545, "lower_tail_women": 0.03822460411128553, "lower_tail_ratio_mw": 0.1971606863185401, "model_class": "binary/prevalence"}, "title": "Domestic violence victimization", "source_name": "CDC NISVS 2023/2024 Intimate Partner Violence Data Brief, tables 1 and 4", "source_url": "https://www.cdc.gov/nisvs/media/pdfs/intimatepartnerviolence-brief.pdf", "method": "Used CDC NISVS 12-month weighted percentages and rounded victim counts. Mean is the weighted prevalence as a 0/1 indicator; SD is sqrt(p(1-p)); n is the implied denominator from rounded count divided by rounded percentage.", "series": [{"label": "Men", "mean": 0.023, "sd": 0.14990330216509573, "n": 122304348, "min_value": 0.0, "max_value": 1.0}, {"label": "Women", "mean": 0.052000000000000005, "sd": 0.2220270253820467, "n": 128923077, "min_value": 0.0, "max_value": 1.0}], "sample": "CDC NISVS 2023/2024 annualized U.S. adults; 12-month contact sexual violence, physical violence, and/or stalking by an intimate partner", "basis": "Men/Women national prevalence", "group": "Social/behavior", "unit": "proportion victimized", "note": "Domestic-violence label here uses the CDC intimate-partner-violence measure, not the broader BJS domestic-violence crime category. 12-month rates: Men 2.3% (2,813,000; 95% CI 1.6-3.3%); Women 5.2% (6,704,000; 95% CI 4.6-6.0%).", "id": "domestic-violence-victimization"}, {"metrics": {"d_mw": 0.02045064025329412, "sd_ratio_mw": 1.2441517285863362, "overlap": 0.8944669861485636, "upper_threshold_z2": 0.09691860855435516, "lower_threshold_z2": -0.09242659991923641, "upper_tail_men": 0.035527361620081965, "upper_tail_women": 0.011636134923093122, "upper_tail_ratio_mw": 3.0531926498698647, "lower_tail_men": 0.03410020018487736, "lower_tail_women": 0.012356726237525817, "lower_tail_ratio_mw": 2.7596468133541197, "model_class": "binary/prevalence"}, "title": "Homelessness prevalence", "source_name": "HUD 2024 AHAR Part 1; U.S. Census NC-EST2024-SYASEXN", "source_url": "https://www.huduser.gov/portal/datasets/ahar/2024-ahar-part-1-pit-estimates-of-homelessness-in-the-us.html", "method": "Used HUD AHAR Exhibit 1-5 counts for Man (boy) and Woman (girl), divided by Census 2024 male/female resident population. Mean is prevalence as a 0/1 indicator; SD is sqrt(p(1-p)).", "series": [{"label": "Men", "mean": 0.0027300331603316713, "sd": 0.05217834875956847, "n": 168337882, "min_value": 0.0, "max_value": 1.0}, {"label": "Women", "mean": 0.0017619754747870717, "sd": 0.04193889504044331, "n": 171773106, "min_value": 0.0, "max_value": 1.0}], "sample": "HUD 2024 AHAR point-in-time gender counts divided by Census July 1, 2024 U.S. resident population by sex", "basis": "Men/Women national prevalence", "group": "Social/behavior", "unit": "proportion yes", "note": "Point-in-time count on one night in January 2024. Rate equivalents: Men 27.3 per 10,000; Women 17.6 per 10,000. HUD report PDF: https://www.huduser.gov/portal/sites/default/files/pdf/2024-AHAR-Part-1.pdf. Census denominator: https://www2.census.gov/programs-surveys/popest/tables/2020-2024/national/asrh/nc-est2024-syasexn.xlsx.", "id": "homelessness-prevalence"}, {"metrics": {"d_mw": -0.23549650999066415, "sd_ratio_mw": 0.8821524921553052, "overlap": 0.8934166135313326, "upper_threshold_z2": 11.779541974790918, "lower_threshold_z2": -5.1920469438142955, "upper_tail_men": 0.011798492074473144, "upper_tail_women": 0.03796453305818326, "upper_tail_ratio_mw": 0.31077669403680386, "lower_tail_men": 0.02211472560741623, "lower_tail_women": 0.02291990504262742, "lower_tail_ratio_mw": 0.9648698616458627, "model_class": "scale/ordinal"}, "title": "PHQ-9 score", "source_name": "CDC NHANES P_DPQ public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_DPQ.htm", "method": "Summed DPQ010-DPQ090 after filtering each item to valid 0-3 responses.", "series": [{"label": "Men", "mean": 2.794153770572341, "sd": 3.9694626988891257, "n": 4071, "min_value": 0.0, "max_value": 27.0}, {"label": "Women", "mean": 3.7933412604042807, "sd": 4.4997466245215705, "n": 4205, "min_value": 0.0, "max_value": 26.0}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Social/behavior", "unit": "0-27 score", "note": "Depression screener score; visual comparison only.", "id": "phq-9-score"}, {"metrics": {"d_mw": 0.31765438127094603, "sd_ratio_mw": 1.35185171550326, "overlap": 0.81655818629447, "upper_threshold_z2": 230.88251761547772, "lower_threshold_z2": -124.759175784625, "upper_tail_men": 0.05268145322350426, "upper_tail_women": 0.005131005844708603, "upper_tail_ratio_mw": 10.267276011356039, "lower_tail_men": 0.028796497391086695, "lower_tail_women": 0.014291948570461455, "lower_tail_ratio_mw": 2.0148755258329984, "model_class": "continuous/sample"}, "title": "Alcohol drinking frequency", "source_name": "CDC NHANES P_ALQ public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_ALQ.htm", "method": "Mapped ALQ121 frequency codes to approximate annual days, then computed sex-specific mean/SD.", "series": [{"label": "Men", "mean": 67.1830636743215, "sd": 101.08697268014434, "n": 3832, "min_value": 0.0, "max_value": 365.0}, {"label": "Women", "mean": 38.94027815653122, "sd": 74.77667226431875, "n": 3667, "min_value": 0.0, "max_value": 365.0}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Social/behavior", "unit": "days/year", "note": "Alcohol frequency is self-reported; coded categories were converted to approximate annual days.", "id": "alcohol-drinking-frequency"}, {"metrics": {"d_mw": 0.13330596313323587, "sd_ratio_mw": 1.1391203536792995, "overlap": 0.9212645883466547, "upper_threshold_z2": 27.1293147431687, "lower_threshold_z2": -5.892003308356827, "upper_tail_men": 0.03444636721510519, "upper_tail_women": 0.013377304293278325, "upper_tail_ratio_mw": 2.574985696663371, "lower_tail_men": 0.025914421812076704, "lower_tail_women": 0.01912341860672323, "lower_tail_ratio_mw": 1.355114498354701, "model_class": "continuous/sample"}, "title": "Cigarettes per day", "source_name": "CDC NHANES P_SMQ public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_SMQ.htm", "method": "Computed sex-specific sample mean and sample SD from SMD650.", "series": [{"label": "Men", "mean": 11.168898043254377, "sd": 8.773689623481204, "n": 971, "min_value": 1.0, "max_value": 95.0}, {"label": "Women", "mean": 10.068413391557497, "sd": 7.70216210705273, "n": 687, "min_value": 1.0, "max_value": 40.0}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Social/behavior", "unit": "cigarettes/day", "note": "Current smokers with valid cigarettes-per-day responses only.", "id": "cigarettes-per-day"}, {"metrics": {"d_mw": 0.016170178742503444, "sd_ratio_mw": 1.0085590777470637, "overlap": 0.9926884091469103, "upper_threshold_z2": 741.0937731215251, "lower_threshold_z2": -71.52521520682126, "upper_tail_men": 0.023656875691440038, "upper_tail_women": 0.021863567548817686, "upper_tail_ratio_mw": 1.0820226680123541, "lower_tail_men": 0.022772682828510193, "lower_tail_women": 0.02272543965354734, "lower_tail_ratio_mw": 1.0020788673699204, "model_class": "continuous/sample"}, "title": "Sedentary time", "source_name": "CDC NHANES P_PAQ public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_PAQ.htm", "method": "Computed sex-specific sample mean and sample SD from PAD680.", "series": [{"label": "Men", "mean": 336.4268032437046, "sd": 204.01859855867767, "n": 4686, "min_value": 0.0, "max_value": 1200.0}, {"label": "Women", "mean": 333.1417546709992, "sd": 202.28720662989608, "n": 4924, "min_value": 0.0, "max_value": 1320.0}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Social/behavior", "unit": "min/day", "note": "Self-reported sitting/reclining time on a typical day.", "id": "sedentary-time"}, {"metrics": {"d_mw": 0.32355263946476864, "sd_ratio_mw": 1.0405348208913514, "overlap": 0.8705072780096618, "upper_threshold_z2": 67.3828734377052, "lower_threshold_z2": 11.45233790912108, "upper_tail_men": 0.0357118123526432, "upper_tail_women": 0.013691122589742588, "upper_tail_ratio_mw": 2.6083918333620466, "lower_tail_men": 0.016999325675661425, "lower_tail_women": 0.03033795927147631, "lower_tail_ratio_mw": 0.5603318774194597, "model_class": "continuous/sample"}, "title": "Work hours", "source_name": "CDC NHANES P_OCQ public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_OCQ.htm", "method": "Computed sex-specific sample mean and sample SD from OCQ180.", "series": [{"label": "Men", "mean": 41.67966472303207, "sd": 14.257583322785724, "n": 2744, "min_value": 5.0, "max_value": 80.0}, {"label": "Women", "mean": 37.155546623794216, "sd": 13.702168381613866, "n": 2488, "min_value": 5.0, "max_value": 80.0}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Social/behavior", "unit": "hours/week", "note": "Usual hours worked per week among respondents with valid work-hour responses.", "id": "work-hours"}], "strongest_tail": [{"metrics": {"d_mw": -14.994541944059407, "sd_ratio_mw": 0.7616288120555946, "overlap": 3.825060700883998e-14, "upper_threshold_z2": 10.519639441610977, "lower_threshold_z2": 10.260710558389025, "upper_tail_men": 0.0, "upper_tail_women": 0.999999486002951, "upper_tail_ratio_mw": 0.0, "lower_tail_men": 0.9999999999298029, "lower_tail_women": 0.0, "lower_tail_ratio_mw": null, "model_class": "elite/top-tail"}, "title": "Top 1000 100m", "source_name": "Alltime Athletics men's and women's all-time performance lists", "source_url": "https://www.alltime-athletics.com/m_100ok.htm", "method": "Parsed first 1000 performance marks from each main list and computed sample mean/SD.", "series": [{"label": "Men", "mean": 9.904860000000001, "sd": 0.05546762170002483, "n": 1000, "min_value": 9.58, "max_value": 9.97}, {"label": "Women", "mean": 10.875490000000001, "sd": 0.07282763049669923, "n": 1000, "min_value": 10.54, "max_value": 10.96}], "sample": "First 1000 repeated performances in the Alltime Athletics main 100m lists", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "seconds", "note": "Women's source: https://www.alltime-athletics.com/w_100ok.htm. Top-tail distributions, not population distributions.", "id": "top-1000-100m"}, {"metrics": {"d_mw": -9.791315716805546, "sd_ratio_mw": 0.53616519563542, "overlap": 3.0066327928654063e-07, "upper_threshold_z2": 136.58522443169633, "lower_threshold_z2": 130.15035890163702, "upper_tail_men": 0.0, "upper_tail_women": 0.9899179104854767, "upper_tail_ratio_mw": 0.0, "lower_tail_men": 0.9999926501193415, "lower_tail_women": 1.5775327044664778e-08, "lower_tail_ratio_mw": 63389662.05189004, "model_class": "elite/top-tail"}, "title": "Top 1000 marathon", "source_name": "Alltime Athletics men's and women's all-time performance lists", "source_url": "https://www.alltime-athletics.com/mmaraok.htm", "method": "Parsed first 1000 performance marks from each main list and computed sample mean/SD.", "series": [{"label": "Men", "mean": 125.49206666666667, "sd": 1.075038496981487, "n": 1000, "min_value": 119.5, "max_value": 126.75}, {"label": "Women", "mean": 141.24351666666666, "sd": 2.0050508793422104, "n": 1000, "min_value": 129.93333333333334, "max_value": 143.5}], "sample": "First 1000 repeated performances in the Alltime Athletics main marathon lists", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "minutes", "note": "Women's source: https://www.alltime-athletics.com/wmaraok.htm. Top-tail distributions, not population distributions.", "id": "top-1000-marathon"}, {"metrics": {"d_mw": -21.48017421719166, "sd_ratio_mw": 1.0212639831745478, "overlap": 6.544446251014163e-27, "upper_threshold_z2": 50.46528339163566, "lower_threshold_z2": 49.50386660836434, "upper_tail_men": 0.0, "upper_tail_women": 1.0, "upper_tail_ratio_mw": 0.0, "lower_tail_men": 1.0, "lower_tail_women": 0.0, "lower_tail_ratio_mw": null, "model_class": "elite/top-tail"}, "title": "Top 200 swimming 100m freestyle", "source_name": "World Aquatics swimming rankings", "source_url": "https://www.worldaquatics.com/swimming/rankings", "method": "Downloaded the official rankings CSV export for each sex and computed sample mean/SD from swim_time.", "series": [{"label": "Men", "mean": 47.40315, "sd": 0.24286931676341011, "n": 200, "min_value": 46.4, "max_value": 47.67}, {"label": "Women", "mean": 52.566, "sd": 0.23781247626932173, "n": 200, "min_value": 51.71, "max_value": 52.83}], "sample": "Official World Aquatics all-time LCM ranking CSV export, top 200 returned rows for 100m freestyle by sex", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "seconds", "note": "The World Aquatics CSV export returned 200 rows per query from this endpoint; these are ranking performances, not population distributions.", "id": "top-200-swimming-100m-freestyle"}, {"metrics": {"d_mw": 10.339361246881483, "sd_ratio_mw": 0.9314085439910829, "overlap": 2.3034697666069325e-07, "upper_threshold_z2": 324.2772680173875, "lower_threshold_z2": 274.28800198261257, "upper_tail_men": 0.9994963222996288, "upper_tail_women": 2.1318502518852256e-12, "upper_tail_ratio_mw": 468839835919.88226, "lower_tail_men": 5.0959236830294685e-14, "lower_tail_women": 0.9989039974104511, "lower_tail_ratio_mw": 5.10151495663256e-14, "model_class": "elite/top-tail"}, "title": "Top 1000 raw deadlift", "source_name": "OpenPowerlifting Data Service, OpenIPF bulk CSV", "source_url": "https://openpowerlifting.gitlab.io/opl-csv/bulk-csv.html", "method": "Filtered to raw/tested/sanctioned SBD results, selected the top 1000 Best3DeadliftKg values for each sex, and computed sample mean/SD.", "series": [{"label": "Men", "mean": 363.88977, "sd": 12.045896723572511, "n": 1000, "min_value": 350.0, "max_value": 417.5}, {"label": "Women", "mean": 234.6755, "sd": 12.932989289486093, "n": 1000, "min_value": 220.0, "max_value": 290.0}], "sample": "Top 1000 raw, tested, sanctioned SBD meet results by sex in the OpenIPF bulk data", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "kg", "note": "Competition-result rows, not unique lifters and not a general-population strength distribution.", "id": "top-1000-raw-deadlift"}, {"metrics": {"d_mw": 10.049171495582941, "sd_ratio_mw": 1.0830101107142953, "overlap": 4.936774743209154e-07, "upper_threshold_z2": 207.58211064893683, "lower_threshold_z2": 164.45494935106316, "upper_tail_men": 0.99819851962923, "upper_tail_women": 1.2223555501122974e-13, "upper_tail_ratio_mw": 8166187976464.997, "lower_tail_men": 6.864508961257343e-12, "lower_tail_women": 0.9991909432649557, "lower_tail_ratio_mw": 6.87006723542437e-12, "model_class": "elite/top-tail"}, "title": "Top 1000 raw bench press", "source_name": "OpenPowerlifting Data Service, OpenIPF bulk CSV", "source_url": "https://openpowerlifting.gitlab.io/opl-csv/bulk-csv.html", "method": "Filtered to raw/tested/sanctioned SBD results, selected the top 1000 Best3BenchKg values for each sex, and computed sample mean/SD.", "series": [{"label": "Men", "mean": 240.19256, "sd": 11.202563942476976, "n": 1000, "min_value": 227.5, "max_value": 291.5}, {"label": "Women", "mean": 131.8445, "sd": 10.343914458091593, "n": 1000, "min_value": 120.0, "max_value": 167.5}], "sample": "Top 1000 raw, tested, sanctioned SBD meet results by sex in the OpenIPF bulk data", "basis": "Men/Women top-tail sample", "group": "Performance", "unit": "kg", "note": "Competition-result rows, not unique lifters and not a general-population strength distribution.", "id": "top-1000-raw-bench-press"}, {"metrics": {"d_mw": 1.8543945641693036, "sd_ratio_mw": 1.0946258928071515, "overlap": 0.3527628427313345, "upper_threshold_z2": 181.67177585127473, "lower_threshold_z2": 152.16381297880258, "upper_tail_men": 0.1520972755880723, "upper_tail_women": 0.0010745362976640749, "upper_tail_ratio_mw": 141.54689415212425, "lower_tail_men": 0.002527313834429612, "lower_tail_women": 0.13035680025032326, "lower_tail_ratio_mw": 0.019387663931428423, "model_class": "continuous/sample"}, "title": "Height", "source_name": "CDC NHANES P_BMX public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_BMX.htm", "method": "Computed sex-specific sample mean and sample SD from BMXHT.", "series": [{"label": "Men", "mean": 173.7577201588414, "sd": 7.702394750632288, "n": 4281, "min_value": 144.6, "max_value": 199.6}, {"label": "Women", "mean": 160.0778686712359, "sd": 7.03655449888876, "n": 4523, "min_value": 131.1, "max_value": 189.3}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Body", "unit": "cm", "note": "Unweighted NHANES public-use sample; normal fit is descriptive.", "id": "height"}, {"metrics": {"d_mw": -1.2388957045446456, "sd_ratio_mw": 0.9751552795031054, "overlap": 0.5355040242984539, "upper_threshold_z2": 111.95251562376788, "lower_threshold_z2": 48.347484376232124, "upper_tail_men": 0.00398868070147218, "upper_tail_women": 0.08636087229325129, "upper_tail_ratio_mw": 0.0461862021023597, "lower_tail_men": 0.08101909304351429, "lower_tail_women": 0.004839195540626173, "lower_tail_ratio_mw": 16.742264775899248, "model_class": "psychometric/self-report"}, "title": "Friendship score", "source_name": "Baron-Cohen & Wheelwright (2003), Friendship Questionnaire paper", "source_url": "https://docs.autismresearchcentre.com/papers/2003_BCandSW_FQ.pdf", "method": "Used published Study 1 men/women mean and SD values for the FQ total score.", "series": [{"label": "Men", "mean": 70.3, "sd": 15.7, "n": 27, "min_value": 0.0, "max_value": 135.0}, {"label": "Women", "mean": 90.0, "sd": 16.1, "n": 49, "min_value": 0.0, "max_value": 135.0}], "sample": "Baron-Cohen & Wheelwright (2003) general-population adults, Study 1", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "FQ score", "note": "Self-report friendship-style scale; higher score reflects the scale's model of close, empathic, supportive friendship.", "id": "friendship-score"}, {"metrics": {"d_mw": 1.1031087592366833, "sd_ratio_mw": 1.0796558831425063, "overlap": 0.5800693545802258, "upper_threshold_z2": 5.19432326751398, "lower_threshold_z2": 0.8983287008434258, "upper_tail_men": 0.08135180643634377, "upper_tail_women": 0.003963974381385071, "upper_tail_ratio_mw": 20.5227881437312, "lower_tail_men": 0.006961753173082341, "lower_tail_women": 0.06587475088097339, "lower_tail_ratio_mw": 0.10568166224508797, "model_class": "psychometric/self-report"}, "title": "Interest in things", "source_name": "Herlitz et al. (2026), Scientific Reports; public OSF data", "source_url": "https://www.nature.com/articles/s41598-026-53824-6", "method": "Computed sex-specific sample mean and sample SD from thingsscore in the shared OSF data.", "series": [{"label": "Men", "mean": 3.6386946386946386, "sd": 1.1143183087213628, "n": 1287, "min_value": 1.0, "max_value": 6.0}, {"label": "Women", "mean": 2.453957329662767, "sd": 1.0321050680314603, "n": 1453, "min_value": 1.0, "max_value": 5.8}], "sample": "Swedish adults age 35-45 from Herlitz et al. (2026), cleaned public dataset", "basis": "Men/Women sample", "group": "Preferences", "unit": "mean 1-6 item score", "note": "Mean of object/mechanical everyday-interest items; higher means stronger interest. Public data: https://osf.io/kfxp3.", "id": "interest-in-things"}, {"metrics": {"d_mw": 0.8924683506587586, "sd_ratio_mw": 1.1666666666666667, "overlap": 0.6498088244200995, "upper_threshold_z2": 35.44224529144583, "lower_threshold_z2": 6.757754708554174, "upper_tail_men": 0.07394218226782989, "upper_tail_women": 0.003931274913619109, "upper_tail_ratio_mw": 18.808703001581524, "lower_tail_men": 0.011356924980798988, "lower_tail_women": 0.04568460021032672, "lower_tail_ratio_mw": 0.24859416364623949, "model_class": "psychometric/self-report"}, "title": "Physical aggression", "source_name": "Buss & Perry (1992), The Aggression Questionnaire, PubMed record", "source_url": "https://pubmed.ncbi.nlm.nih.gov/1403624/", "method": "Used Table 4 men/women mean and SD values for BPAQ subscales.", "series": [{"label": "Men", "mean": 24.3, "sd": 7.7, "n": 612, "min_value": 9.0, "max_value": 45.0}, {"label": "Women", "mean": 17.9, "sd": 6.6, "n": 641, "min_value": 9.0, "max_value": 45.0}], "sample": "Buss & Perry Aggression Questionnaire normative sample, Table 4", "basis": "Men/Women published statistics", "group": "Social scales", "unit": "BPAQ score", "note": "Validated self-report aggression scale; descriptive scale scores only, not a behavioral diagnosis.", "id": "physical-aggression"}, {"metrics": {"d_mw": -0.15309133124992758, "sd_ratio_mw": 0.6751579088498524, "overlap": 0.805062894576168, "upper_threshold_z2": 0.41635881275219133, "lower_threshold_z2": -0.3413588127521914, "upper_tail_men": 0.004344121479975316, "upper_tail_women": 0.05039288128911168, "upper_tail_ratio_mw": 0.08620506247801997, "lower_tail_men": 0.007536389180835545, "lower_tail_women": 0.03822460411128553, "lower_tail_ratio_mw": 0.1971606863185401, "model_class": "binary/prevalence"}, "title": "Domestic violence victimization", "source_name": "CDC NISVS 2023/2024 Intimate Partner Violence Data Brief, tables 1 and 4", "source_url": "https://www.cdc.gov/nisvs/media/pdfs/intimatepartnerviolence-brief.pdf", "method": "Used CDC NISVS 12-month weighted percentages and rounded victim counts. Mean is the weighted prevalence as a 0/1 indicator; SD is sqrt(p(1-p)); n is the implied denominator from rounded count divided by rounded percentage.", "series": [{"label": "Men", "mean": 0.023, "sd": 0.14990330216509573, "n": 122304348, "min_value": 0.0, "max_value": 1.0}, {"label": "Women", "mean": 0.052000000000000005, "sd": 0.2220270253820467, "n": 128923077, "min_value": 0.0, "max_value": 1.0}], "sample": "CDC NISVS 2023/2024 annualized U.S. adults; 12-month contact sexual violence, physical violence, and/or stalking by an intimate partner", "basis": "Men/Women national prevalence", "group": "Social/behavior", "unit": "proportion victimized", "note": "Domestic-violence label here uses the CDC intimate-partner-violence measure, not the broader BJS domestic-violence crime category. 12-month rates: Men 2.3% (2,813,000; 95% CI 1.6-3.3%); Women 5.2% (6,704,000; 95% CI 4.6-6.0%).", "id": "domestic-violence-victimization"}, {"metrics": {"d_mw": 0.9526948695592727, "sd_ratio_mw": 1.020179064063618, "overlap": 0.63373455964107, "upper_threshold_z2": 1.2149896652210828, "lower_threshold_z2": 0.634752269737353, "upper_tail_men": 0.06569297958807407, "upper_tail_women": 0.006184166004308711, "upper_tail_ratio_mw": 10.622771048238942, "lower_tail_men": 0.007103652251090664, "lower_tail_women": 0.06188966391055856, "lower_tail_ratio_mw": 0.1147792991953663, "model_class": "continuous/sample"}, "title": "Femur BMD", "source_name": "CDC NHANES P_DXXFEM public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_DXXFEM.htm", "method": "Computed sex-specific sample mean and sample SD from DXXOFBMD.", "series": [{"label": "Men", "mean": 0.9939696162046908, "sd": 0.146501002077344, "n": 1876, "min_value": 0.483, "max_value": 1.611}, {"label": "Women", "mean": 0.8557723187537448, "sd": 0.1436032234319683, "n": 1669, "min_value": 0.37, "max_value": 1.367}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Body", "unit": "g/cm²", "note": "DXA public-use sample; not a diagnostic threshold.", "id": "femur-bmd"}, {"metrics": {"d_mw": 0.31765438127094603, "sd_ratio_mw": 1.35185171550326, "overlap": 0.81655818629447, "upper_threshold_z2": 230.88251761547772, "lower_threshold_z2": -124.759175784625, "upper_tail_men": 0.05268145322350426, "upper_tail_women": 0.005131005844708603, "upper_tail_ratio_mw": 10.267276011356039, "lower_tail_men": 0.028796497391086695, "lower_tail_women": 0.014291948570461455, "lower_tail_ratio_mw": 2.0148755258329984, "model_class": "continuous/sample"}, "title": "Alcohol drinking frequency", "source_name": "CDC NHANES P_ALQ public-use data/codebook", "source_url": "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_ALQ.htm", "method": "Mapped ALQ121 frequency codes to approximate annual days, then computed sex-specific mean/SD.", "series": [{"label": "Men", "mean": 67.1830636743215, "sd": 101.08697268014434, "n": 3832, "min_value": 0.0, "max_value": 365.0}, {"label": "Women", "mean": 38.94027815653122, "sd": 74.77667226431875, "n": 3667, "min_value": 0.0, "max_value": 365.0}], "sample": "CDC NHANES 2017-March 2020 pre-pandemic public-use adults age 18+, split by RIAGENDR", "basis": "Men/Women sample", "group": "Social/behavior", "unit": "days/year", "note": "Alcohol frequency is self-reported; coded categories were converted to approximate annual days.", "id": "alcohol-drinking-frequency"}], "bjs_offender": {"source": "BJS Criminal Victimization, 2024, tables 11 and 12", "source_url": "https://bjs.ojp.gov/library/publications/criminal-victimization-2024", "total_incidents": 6075830.0, "offender_summary": [{"label": "Male perceived offender", "count": 4214150.0, "reported_percent": 75.6}, {"label": "Female perceived offender", "count": 1077360.0, "reported_percent": 19.3}, {"label": "Both male and female offenders", "count": 281260, "reported_percent": 5.0}], "unknown_count": 503060.0, "unknown_percent_all": 8.279691828112373, "cross_tab": [{"victim": "Male victims", "total": 3058040.0, "male_offender": 2389160.0, "female_offender": 302550.0, "both": 80220.0, "unknown": 286100.0}, {"victim": "Female victims", "total": 3017790.0, "male_offender": 1824990.0, "female_offender": 774800.0, "both": 201040.0, "unknown": 216960.0}], "caveat": "BJS offender sex is based on victims' perceptions of offenders in violent incidents. It is not a domestic-violence perpetrator distribution, and it is not modeled as a normal curve."}}</script>
+  <script>
+    const DATA = JSON.parse(document.getElementById('report-data').textContent);
+    const MEN = '#006adc';
+    const WOMEN = '#d92940';
+    const INK = '#0d0f14';
+    const LINE = '#d9dee5';
+    const SOFT = '#edf0f4';
+    const fmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+    const pct = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+    const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
+    let atlasGroup = 'case studies';
+    let activeCaseId = DATA.case_cards[0].id;
+
+    function erf(x) {
+      const sign = x < 0 ? -1 : 1;
+      x = Math.abs(x);
+      const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+      const t = 1 / (1 + p * x);
+      const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+      return sign * y;
+    }
+    function cdf(x, mu = 0, sigma = 1) { return 0.5 * (1 + erf((x - mu) / (sigma * Math.SQRT2))); }
+    function surv(x, mu = 0, sigma = 1) { return Math.max(0, Math.min(1, 1 - cdf(x, mu, sigma))); }
+    function pdf(x, mu = 0, sigma = 1) { return Math.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * Math.sqrt(2 * Math.PI)); }
+    function ratioText(value) {
+      if (value === null || value === undefined) return 'n/a';
+      if (!Number.isFinite(value)) return '∞';
+      if (value >= 1000) return compact.format(value) + '×';
+      if (value >= 10) return fmt.format(value) + '×';
+      return value.toFixed(2) + '×';
+    }
+    function numText(value) {
+      if (!Number.isFinite(value)) return 'n/a';
+      if (Math.abs(value) >= 10000) return compact.format(value);
+      if (Math.abs(value) >= 100) return fmt.format(value);
+      return value.toFixed(2);
+    }
+    function percentText(value) { return Number.isFinite(value) ? pct.format(value * 100) + '%' : 'n/a'; }
+    function probabilityText(value) {
+      if (!Number.isFinite(value)) return 'n/a';
+      if (value === 0) return '0';
+      if (value < 0.0001) return value.toExponential(2);
+      if (value < 0.01) return (value * 100).toFixed(3) + '%';
+      return (value * 100).toFixed(2) + '%';
+    }
+
+    function makePath(xs, ys, sx, sy) {
+      return xs.map((x, i) => `${i ? 'L' : 'M'} ${sx(x).toFixed(2)} ${sy(ys[i]).toFixed(2)}`).join(' ');
+    }
+    function areaPath(xs, ys, sx, sy, baseY, filter) {
+      const pts = xs.map((x, i) => ({ x, y: ys[i] })).filter(p => !filter || filter(p.x));
+      if (pts.length < 2) return '';
+      const first = pts[0], last = pts[pts.length - 1];
+      return `M ${sx(first.x).toFixed(2)} ${baseY.toFixed(2)} ` +
+        pts.map(p => `L ${sx(p.x).toFixed(2)} ${sy(p.y).toFixed(2)}`).join(' ') +
+        ` L ${sx(last.x).toFixed(2)} ${baseY.toFixed(2)} Z`;
+    }
+
+    function normalChart(svg, specs) {
+      const width = specs.width || 760, height = specs.height || 360;
+      const ml = 48, mr = 22, mt = 22, mb = 46;
+      const pw = width - ml - mr, ph = height - mt - mb;
+      const xs = Array.from({ length: 300 }, (_, i) => specs.xMin + (specs.xMax - specs.xMin) * i / 299);
+      const yA = xs.map(x => pdf(x, specs.aMu, specs.aSigma));
+      const yB = xs.map(x => pdf(x, specs.bMu, specs.bSigma));
+      const yMax = Math.max(...yA, ...yB) * 1.18;
+      const sx = x => ml + (x - specs.xMin) / (specs.xMax - specs.xMin) * pw;
+      const sy = y => mt + ph - y / yMax * ph;
+      const baseY = mt + ph;
+      const aPath = makePath(xs, yA, sx, sy);
+      const bPath = makePath(xs, yB, sx, sy);
+      const rightA = areaPath(xs, yA, sx, sy, baseY, x => x >= specs.cutoff);
+      const rightB = areaPath(xs, yB, sx, sy, baseY, x => x >= specs.cutoff);
+      const ticks = [Math.ceil(specs.xMin), 0, specs.cutoff, Math.floor(specs.xMax)]
+        .filter((v, i, arr) => v >= specs.xMin && v <= specs.xMax && arr.indexOf(v) === i)
+        .sort((a, b) => a - b)
+        .map(x => `<g><line x1="${sx(x)}" x2="${sx(x)}" y1="${baseY}" y2="${baseY + 6}" stroke="#77808c"/><text x="${sx(x)}" y="${baseY + 24}" text-anchor="middle" font-size="11" font-family="var(--mono)" fill="#5b6470">${fmt.format(x)}</text></g>`)
+        .join('');
+      svg.innerHTML = `
+        <rect width="${width}" height="${height}" fill="white"></rect>
+        <line x1="${ml}" y1="${baseY}" x2="${ml + pw}" y2="${baseY}" stroke="${LINE}"></line>
+        <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${baseY}" stroke="${LINE}"></line>
+        <line x1="${ml}" y1="${mt + ph / 2}" x2="${ml + pw}" y2="${mt + ph / 2}" stroke="${SOFT}"></line>
+        ${rightA ? `<path d="${rightA}" fill="${MEN}" opacity="0.10"></path>` : ''}
+        ${rightB ? `<path d="${rightB}" fill="${WOMEN}" opacity="0.16"></path>` : ''}
+        <path class="curve-line" d="${aPath}" fill="none" stroke="${MEN}" stroke-width="4" stroke-linecap="round"></path>
+        <path class="curve-line" d="${bPath}" fill="none" stroke="${WOMEN}" stroke-width="4" stroke-linecap="round"></path>
+        <line x1="${sx(specs.cutoff)}" y1="${mt}" x2="${sx(specs.cutoff)}" y2="${baseY}" stroke="${INK}" stroke-width="2" stroke-dasharray="5 7"></line>
+        <text x="${sx(specs.cutoff) + 8}" y="${mt + 16}" font-size="12" font-family="var(--mono)" font-weight="700" fill="${INK}">cutoff z</text>
+        ${ticks}
+        <text x="${ml}" y="${mt + 13}" font-size="12" font-family="var(--mono)" font-weight="700" fill="${MEN}">A baseline</text>
+        <text x="${ml + 106}" y="${mt + 13}" font-size="12" font-family="var(--mono)" font-weight="700" fill="${WOMEN}">B shifted/spread</text>
+      `;
+    }
+
+    function renderHero() {
+      normalChart(document.getElementById('heroChart'), {
+        width: 760, height: 360, xMin: -4.2, xMax: 5, cutoff: 3, aMu: 0, aSigma: 1, bMu: 0.5, bSigma: 1
+      });
+    }
+
+    function renderLab() {
+      const d = Number(document.getElementById('dSlider').value);
+      const sr = Number(document.getElementById('sigmaSlider').value);
+      const z = Number(document.getElementById('zSlider').value);
+      document.getElementById('dValue').textContent = d.toFixed(2);
+      document.getElementById('sigmaValue').textContent = sr.toFixed(2);
+      document.getElementById('zValue').textContent = z.toFixed(2);
+      const aRight = surv(z, 0, 1);
+      const bRight = surv(z, d, sr);
+      const aLeft = cdf(-z, 0, 1);
+      const bLeft = cdf(-z, d, sr);
+      document.getElementById('rightRatio').textContent = ratioText(bRight / aRight);
+      document.getElementById('leftRatio').textContent = ratioText(bLeft / aLeft);
+      document.getElementById('count10k').textContent = compact.format(Math.round(bRight * 10000));
+      document.getElementById('count1m').textContent = compact.format(Math.round(bRight * 1000000));
+      const min = Math.min(-4.5, d - 4.2 * sr);
+      const max = Math.max(4.8, d + 4.2 * sr, z + 0.8);
+      normalChart(document.getElementById('labChart'), { width: 840, height: 430, xMin: min, xMax: max, cutoff: z, aMu: 0, aSigma: 1, bMu: d, bSigma: sr });
+      renderZLadder(d, sr);
+    }
+
+    function renderZLadder(d, sr) {
+      const rows = [1, 2, 3, 4].map(k => {
+        const aUpper = surv(k, 0, 1);
+        const bUpper = surv(k, d, sr);
+        const aLower = cdf(-k, 0, 1);
+        const bLower = cdf(-k, d, sr);
+        const upperRatio = bUpper / aUpper;
+        const lowerRatio = bLower / aLower;
+        const bShare = bUpper / (aUpper + bUpper);
+        return `<tr>
+          <td><strong>${k}σ</strong></td>
+          <td>${probabilityText(aUpper)}</td>
+          <td>${probabilityText(bUpper)}</td>
+          <td><strong>${ratioText(upperRatio)}</strong></td>
+          <td>${ratioText(lowerRatio)}</td>
+          <td>${percentText(bShare)} <span class="composition-bar" aria-hidden="true"><i style="width:${(bShare * 100).toFixed(1)}%"></i></span></td>
+        </tr>`;
+      }).join('');
+      document.getElementById('zLadderRows').innerHTML = rows;
+    }
+
+    function smallChart(card) {
+      const men = card.series.find(s => s.label === 'Men') || card.series[0];
+      const women = card.series.find(s => s.label === 'Women') || card.series[1];
+      const min = Math.min(men.mean - 3 * men.sd, women.mean - 3 * women.sd);
+      const max = Math.max(men.mean + 3 * men.sd, women.mean + 3 * women.sd);
+      const xs = Array.from({ length: 60 }, (_, i) => min + (max - min) * i / 59);
+      const yM = xs.map(x => pdf(x, men.mean, men.sd));
+      const yW = xs.map(x => pdf(x, women.mean, women.sd));
+      const yMax = Math.max(...yM, ...yW);
+      const sx = x => (x - min) / (max - min || 1) * 108;
+      const sy = y => 42 - y / yMax * 34;
+      return `<svg class="mini-chart" viewBox="0 0 112 46" aria-hidden="true">
+        <path d="${makePath(xs, yM, sx, sy)}" fill="none" stroke="${MEN}" stroke-width="2.5"/>
+        <path d="${makePath(xs, yW, sx, sy)}" fill="none" stroke="${WOMEN}" stroke-width="2.5"/>
+        <line x1="0" x2="112" y1="42" y2="42" stroke="${LINE}"/>
+      </svg>`;
+    }
+
+    function tailComparison(card) {
+      const m = card.metrics;
+      const candidates = [
+        {
+          tail: 'upper',
+          action: 'fall above the shared upper cutoff',
+          menProb: Number(m.upper_tail_men),
+          womenProb: Number(m.upper_tail_women)
+        },
+        {
+          tail: 'lower',
+          action: 'fall below the shared lower cutoff',
+          menProb: Number(m.lower_tail_men),
+          womenProb: Number(m.lower_tail_women)
+        }
+      ];
+      const strength = c => {
+        if (!Number.isFinite(c.menProb) || !Number.isFinite(c.womenProb)) return 0;
+        if (c.menProb === 0 && c.womenProb === 0) return 0;
+        if (c.menProb === 0 || c.womenProb === 0) return Infinity;
+        const raw = c.menProb / c.womenProb;
+        return Math.max(raw, 1 / raw);
+      };
+      const selected = candidates.sort((a, b) => strength(b) - strength(a))[0];
+      const menHigher = selected.menProb >= selected.womenProb;
+      let ratio = Infinity;
+      if (selected.menProb > 0 && selected.womenProb > 0) {
+        ratio = menHigher ? selected.menProb / selected.womenProb : selected.womenProb / selected.menProb;
+      }
+      return {
+        ...selected,
+        ratio,
+        direction: menHigher ? 'M/W' : 'W/M',
+        group: menHigher ? 'man' : 'woman',
+        otherGroup: menHigher ? 'woman' : 'man'
+      };
+    }
+
+    function cardTailSignal(card) {
+      const info = tailComparison(card);
+      return `${info.tail} ${info.direction} ${ratioText(info.ratio)}`;
+    }
+
+    function cardTailSentence(card) {
+      const info = tailComparison(card);
+      if (!Number.isFinite(info.ratio)) {
+        return `Under the normal-curve summary fitted to the ${card.title} data, a randomly selected ${info.group} is estimated to be far more likely than a randomly selected ${info.otherGroup} to ${info.action}.`;
+      }
+      return `Under the normal-curve summary fitted to the ${card.title} data, a randomly selected ${info.group} is estimated to be ${ratioText(info.ratio)} as likely as a randomly selected ${info.otherGroup} to ${info.action}.`;
+    }
+
+    function rowHtml(card) {
+      const active = card.id === activeCaseId ? ' active' : '';
+      return `<button class="atlas-row${active}" data-id="${card.id}">
+        <span class="atlas-name"><strong>${card.title}</strong><span>${card.group} · ${card.metrics.model_class}</span></span>
+        <span>${smallChart(card)}</span>
+        <span class="atlas-cell"><strong>${card.metrics.d_mw.toFixed(2)}</strong><span>d M-W</span></span>
+        <span class="atlas-cell"><strong>${card.metrics.sd_ratio_mw.toFixed(2)}</strong><span>SD ratio</span></span>
+        <span class="atlas-cell"><strong>${cardTailSignal(card)}</strong><span>tail ratio</span></span>
+      </button>`;
+    }
+
+    function currentAtlasCards() {
+      if (atlasGroup === 'case studies') return DATA.case_cards;
+      if (atlasGroup === 'strongest tails') return DATA.strongest_tail;
+      return DATA.atlas_cards.filter(card => card.group === atlasGroup);
+    }
+
+    function renderAtlasTabs() {
+      const tabs = ['case studies', 'strongest tails', ...DATA.groups];
+      document.getElementById('atlasTabs').innerHTML = tabs.map(tab =>
+        `<button class="tab" data-tab="${tab}" aria-pressed="${tab === atlasGroup}">${tab}</button>`
+      ).join('');
+      document.querySelectorAll('.tab').forEach(button => {
+        button.addEventListener('click', () => {
+          atlasGroup = button.dataset.tab;
+          const cards = currentAtlasCards();
+          activeCaseId = cards[0]?.id || activeCaseId;
+          renderAtlas();
+        });
+      });
+    }
+
+    function renderCasePanel() {
+      const card = [...DATA.atlas_cards, ...DATA.case_cards, ...DATA.strongest_tail].find(c => c.id === activeCaseId) || DATA.case_cards[0];
+      const men = card.series.find(s => s.label === 'Men') || card.series[0];
+      const women = card.series.find(s => s.label === 'Women') || card.series[1];
+      document.getElementById('casePanel').innerHTML = `
+        <h3>${card.title}</h3>
+        <p>${card.sample}</p>
+        <div class="tail-interpretation"><strong>Tail reading:</strong> ${cardTailSentence(card)}</div>
+        <svg id="caseChart" class="case-chart" viewBox="0 0 620 310" aria-label="${card.title} men and women normal curves"></svg>
+        <div class="case-metrics">
+          <div><span>d M-W</span><strong>${card.metrics.d_mw.toFixed(2)}</strong></div>
+          <div><span>SD ratio</span><strong>${card.metrics.sd_ratio_mw.toFixed(2)}</strong></div>
+          <div><span>overlap</span><strong>${percentText(card.metrics.overlap)}</strong></div>
+          <div><span>shared z=2 tail</span><strong>${cardTailSignal(card)}</strong></div>
+        </div>
+        <div class="cutoff-note"><strong>Shared cutoff:</strong> this tail ratio uses the same upper or lower line for both groups: midpoint of the two means, then two pooled SDs out. It is not two SDs above either group's own mean.</div>
+        <div class="source-note"><strong>Source:</strong> <a href="${card.source_url}" target="_blank" rel="noopener">${card.source_name}</a><br><strong>Method:</strong> ${card.method}</div>
+        <div class="caveat"><strong>Source note:</strong> ${card.note}</div>
+      `;
+      const pooled = Math.sqrt((men.sd ** 2 + women.sd ** 2) / 2);
+      const cutoff = (men.mean + women.mean) / 2 + 2 * pooled;
+      normalChart(document.getElementById('caseChart'), {
+        width: 620,
+        height: 310,
+        xMin: Math.min(men.mean - 3.5 * men.sd, women.mean - 3.5 * women.sd, cutoff - 2.2 * pooled),
+        xMax: Math.max(men.mean + 3.5 * men.sd, women.mean + 3.5 * women.sd, cutoff + 1.8 * pooled),
+        cutoff,
+        aMu: men.mean,
+        aSigma: men.sd,
+        bMu: women.mean,
+        bSigma: women.sd
+      });
+    }
+
+    function renderAtlas() {
+      renderAtlasTabs();
+      const cards = currentAtlasCards();
+      document.getElementById('atlasList').innerHTML = cards.map(rowHtml).join('');
+      document.querySelectorAll('.atlas-row').forEach(row => {
+        row.addEventListener('click', () => {
+          activeCaseId = row.dataset.id;
+          renderAtlas();
+        });
+      });
+      renderCasePanel();
+    }
+
+    function renderOffender() {
+      const data = DATA.bjs_offender;
+      const max = Math.max(...data.offender_summary.map(d => d.reported_percent));
+      document.getElementById('offenderBars').innerHTML = data.offender_summary.map(row => `
+        <div class="bar-row">
+          <strong>${row.label}</strong>
+          <span class="bar-track"><span class="bar-fill" style="width:${(row.reported_percent / max * 100).toFixed(1)}%"></span></span>
+          <span>${pct.format(row.reported_percent)}%</span>
+        </div>
+      `).join('') + `
+        <div class="bar-row">
+          <strong>Unknown sex</strong>
+          <span class="bar-track"><span class="bar-fill" style="width:${(data.unknown_percent_all / max * 100).toFixed(1)}%; background:#8a93a0"></span></span>
+          <span>${pct.format(data.unknown_percent_all)}%</span>
+        </div>`;
+      document.getElementById('offenderCaveat').textContent = data.caveat;
+      document.getElementById('crossTable').innerHTML = `
+        <table class="cross-table">
+          <thead><tr><th>Victim group</th><th>Male offender</th><th>Female offender</th><th>Both</th><th>Unknown</th></tr></thead>
+          <tbody>
+            ${data.cross_tab.map(row => `
+              <tr>
+                <td>${row.victim}<br><span style="color:var(--muted);font-size:11px">${compact.format(row.total)} incidents</span></td>
+                <td>${pct.format(row.male_offender / row.total * 100)}%</td>
+                <td>${pct.format(row.female_offender / row.total * 100)}%</td>
+                <td>${pct.format(row.both / row.total * 100)}%</td>
+                <td>${pct.format(row.unknown / row.total * 100)}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="source-note"><strong>Source:</strong> <a href="${data.source_url}" target="_blank" rel="noopener">${data.source}</a></div>
+      `;
+    }
+
+    function renderSources() {
+      document.getElementById('sourcesList').innerHTML = DATA.sources.map(source => `
+        <div class="source-item">
+          <a href="${source.url}" target="_blank" rel="noopener">${source.name}</a>
+          <p>${source.use}</p>
+        </div>
+      `).join('');
+      document.getElementById('generatedAt').textContent = DATA.generated_at;
+    }
+
+    function boot() {
+      renderHero();
+      renderLab();
+      renderAtlas();
+      renderOffender();
+      renderSources();
+      ['dSlider', 'sigmaSlider', 'zSlider'].forEach(id => {
+        document.getElementById(id).addEventListener('input', renderLab);
+      });
+    }
+    boot();
+  </script>
+</body>
+</html>
